@@ -12,10 +12,10 @@
 const MessageBubble = ({ message, isMine, peerName = "User", myName = "Me" }) => {
   return (
     <div className={isMine ? "message-row mine" : "message-row"}>
-      <div className={message.isAIMessage ? "bubble ai" : "bubble"}>
+      <div className="bubble">
         <p>{message.content}</p>
         <span className="message-meta">
-          {message.isAIMessage ? "AI" : (isMine ? myName : peerName)}
+          {isMine ? myName : peerName}
         </span>
       </div>
     </div>

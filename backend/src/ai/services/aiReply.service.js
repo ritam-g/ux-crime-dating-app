@@ -27,12 +27,11 @@ export const generateAIReply = async ({ conversationId, senderId, receiverId, la
     throw new Error("Sender or Receiver profile not found");
   }
 
-  // Load last 10 messages of context
+  // Load full conversation history context
   const fullHistory = await getMessagesByConversationId(conversationId);
-  const historyMessages = fullHistory.slice(-10);
 
-  // Format history messages
-  const historyText = formatHistory(historyMessages, receiverId, sender.name);
+  // Format all history messages
+  const historyText = formatHistory(fullHistory, receiverId, sender.name);
 
   // Build the complete prompt template
   const formattedPrompt = SYSTEM_PROMPT_TEMPLATE
