@@ -3,7 +3,7 @@ services:
     name: ux-crime-dating-app
     env: node
     plan: free
-    buildCommand: npm run build
+    buildCommand: npm install --include=dev --prefix frontend && npm install --include=dev --prefix backend && npm run build --prefix frontend
     startCommand: npm start
     healthCheckPath: /api/health
     envVars:
