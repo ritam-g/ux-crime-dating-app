@@ -9,7 +9,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
 import MessageBubble from "../components/MessageBubble.jsx";
 import { playSound } from "../chaos/ChaosEngine.js";
-import ChaosVideoPlayer from "../components/ChaosVideoPlayer.jsx";
+import ChaosVideoOverlay from "../components/ChaosVideoOverlay.jsx";
 import { playChaosVideo, playChaosAudio, stopChaosMedia } from "../utils/chaosTriggers.js";
 import {
   getChatHistory,
@@ -222,13 +222,6 @@ const Chat = ({ activeMatch, onPickMatch, onGoMatch }) => {
       const currentUserId = user?._id || user?.id;
       if (data.isTyping && String(data.userId) !== String(currentUserId)) {
         setTypingUser(selectedMatch ? otherUserName(selectedMatch) : "Match");
-        
-        // Peer typing detected: cancel wait countdown and close meme overlay immediately!
-        setActiveMemeVideo(null);
-        if (memeTimerRef.current) {
-          clearTimeout(memeTimerRef.current);
-          memeTimerRef.current = null;
-        }
       } else {
         setTypingUser(null);
       }
@@ -276,8 +269,7 @@ const Chat = ({ activeMatch, onPickMatch, onGoMatch }) => {
     setActiveMemeVideo(null);
 
     memeTimerRef.current = setTimeout(() => {
-      if (typingUser) return; // Suppress if peer is actively typing
-      const randomMeme = playChaosVideo("ignored");
+      const randomMeme = playChaosVideo("waiting_reply");
       if (randomMeme) {
         setActiveMemeVideo(randomMeme);
       }
@@ -454,7 +446,7 @@ const Chat = ({ activeMatch, onPickMatch, onGoMatch }) => {
           </div>
         )}
       {activeMemeVideo && (
-        <ChaosVideoPlayer
+        <ChaosVideoOverlay
           videoAsset={activeMemeVideo}
           onClose={() => {
             setActiveMemeVideo(null);

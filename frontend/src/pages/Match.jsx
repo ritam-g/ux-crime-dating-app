@@ -58,7 +58,7 @@ const Match = ({ onOpenChat }) => {
 
     setActionLoading(true);
     if (action === "like") {
-      playSound("vine", 0.5);
+      playChaosAudio("like_click");
     } else {
       playSound("sad", 0.4);
     }

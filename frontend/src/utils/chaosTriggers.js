@@ -1,39 +1,41 @@
 /**
  * @file chaosTriggers.js
- * @description Central coordinator for audio & video triggering and media state control.
+ * @description Centralized trigger coordinator for all audio & video events.
  */
-
-import { playChaosAudio as playAudio, stopAllChaosAudio, getRandomChaosAsset as getAudioAsset } from "./chaosAudioManager.js";
+import { playChaosAudio as playAudio, stopAllChaosAudio } from "./chaosAudioManager.js";
 import { getChaosVideoAsset } from "./chaosVideoManager.js";
+import { chaosAudioAssets } from "./chaosMediaConfig.js";
 
 /**
- * @description Plays a chaos audio clip for the given trigger type.
- * @param {string} triggerType 
+ * @description Plays an optimized chaos audio sound for the target trigger type.
+ * @param {string} triggerType
  */
 export const playChaosAudio = (triggerType) => {
   return playAudio(triggerType);
 };
 
 /**
- * @description Selects and registers a chaos video clip for the given trigger type.
- * @param {string} triggerType 
- * @returns {object|null} The video asset or null
+ * @description Retrieves a random enabled video asset for the target trigger type.
+ * @param {string} triggerType
+ * @returns {object|null} The video asset structure
  */
 export const playChaosVideo = (triggerType) => {
   return getChaosVideoAsset(triggerType);
 };
 
 /**
- * @description Stops all currently playing chaos audio.
+ * @description Instantly halts all active playing audios and overlays.
  */
 export const stopChaosMedia = () => {
   stopAllChaosAudio();
 };
 
 /**
- * @description Retrieves a random audio asset structure.
- * @param {string} triggerType 
+ * @description Returns a random matching audio asset config structure.
+ * @param {string} triggerType
  */
 export const getRandomChaosAsset = (triggerType) => {
-  return getAudioAsset(triggerType);
+  const eligible = chaosAudioAssets.filter((asset) => asset.triggerType === triggerType);
+  if (eligible.length === 0) return null;
+  return eligible[Math.floor(Math.random() * eligible.length)];
 };

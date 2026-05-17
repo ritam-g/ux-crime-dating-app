@@ -1,83 +1,54 @@
 /**
  * @file chaosVideoManager.js
- * @description Config-driven local video asset management and trigger handlers.
+ * @description Highly optimized video config selector with cooldown protection and preloading helpers.
  */
-
-export const chaosVideoAssets = [
-  {
-    id: "ignored_bunny",
-    title: "🐇 Big Buck Bunny Interruption",
-    src: "/videos/mov_bbb.mp4",
-    volume: 0.4,
-    cooldown: 10000,
-    triggerType: "ignored",
-    duration: 12,
-    probability: 1.0,
-    enabled: true
-  },
-  {
-    id: "cringe_embarrassed",
-    title: "💀 Severe Awkward Silence",
-    src: "/videos/istock.mp4",
-    volume: 0.5,
-    cooldown: 8000,
-    triggerType: "ignored",
-    duration: 10,
-    probability: 1.0,
-    enabled: true
-  },
-  {
-    id: "ghosted_bunny",
-    title: "👻 Ghosted In Retro Style",
-    src: "/videos/mov_bbb.mp4",
-    volume: 0.3,
-    cooldown: 12000,
-    triggerType: "ghosted",
-    duration: 8,
-    probability: 1.0,
-    enabled: true
-  },
-  {
-    id: "typing_long_bunny",
-    title: "⌨️ Speed Typing Simulator",
-    src: "/videos/mov_bbb.mp4",
-    volume: 0.2,
-    cooldown: 15000,
-    triggerType: "typing_too_long",
-    duration: 10,
-    probability: 1.0,
-    enabled: true
-  }
-];
+import { chaosVideoAssets } from "./chaosMediaConfig.js";
 
 const cooldownTracker = {};
+const videoCache = {};
+
+// Optional: Preload video references on client load
+if (typeof window !== "undefined") {
+  chaosVideoAssets.forEach((asset) => {
+    if (asset.enabled) {
+      try {
+        const link = document.createElement("link");
+        link.rel = "preload";
+        link.as = "video";
+        link.href = asset.src;
+        document.head.appendChild(link);
+        videoCache[asset.id] = asset.src;
+      } catch (_) {}
+    }
+  });
+}
 
 /**
- * @description Retrieves a random enabled video asset based on trigger type and probability.
- * @param {string} triggerType 
- * @returns {object|null} Selected asset or null
+ * @description Retrieves a random enabled video asset for a trigger type if cooldown permits.
+ * @param {string} triggerType
+ * @returns {object|null} The video asset structure or null
  */
 export const getChaosVideoAsset = (triggerType) => {
-  const eligible = chaosVideoAssets.filter(
-    (asset) => asset.enabled && asset.triggerType === triggerType
-  );
+  try {
+    const eligible = chaosVideoAssets.filter(
+      (asset) => asset.enabled && asset.triggerType === triggerType
+    );
 
-  if (eligible.length === 0) return null;
+    if (eligible.length === 0) return null;
 
-  const asset = eligible[Math.floor(Math.random() * eligible.length)];
+    const asset = eligible[Math.floor(Math.random() * eligible.length)];
 
-  // Probability check
-  if (Math.random() > asset.probability) return null;
+    // Check cooldown condition
+    const now = Date.now();
+    const lastPlayed = cooldownTracker[asset.id] || 0;
+    if (now - lastPlayed < asset.cooldown) {
+      return null;
+    }
 
-  // Cooldown check
-  const now = Date.now();
-  const lastPlayed = cooldownTracker[asset.id] || 0;
-  if (now - lastPlayed < asset.cooldown) {
-    console.log(`[Video Cooldown] Suppressed video trigger "${asset.id}" due to cooldown.`);
+    cooldownTracker[asset.id] = now;
+    return asset;
+  } catch (err) {
+    console.error("Error in getChaosVideoAsset", err);
     return null;
   }
-
-  // Update cooldown timestamp
-  cooldownTracker[asset.id] = now;
-  return asset;
 };
