@@ -3,10 +3,12 @@ import jwt from "jsonwebtoken";
 import config from "../config/config.js";
 import Conversation from "../models/Conversation.js";
 import { createMessage } from "../dao/message.dao.js";
+import { addOnlineUser, removeOnlineUser } from "./onlineUsers.js";
+import { cancelAIReply, scheduleAIReply } from "../jobs/aiReplyScheduler.js";
 
 /**
  * @file socketServer.js
- * @description Configures the Socket.io server for secure conversation chat messaging.
+ * @description Configures the Socket.io server for secure conversation chat messaging and AI fallback trigger point.
  */
 
 const parseCookies = (cookieString) => {
@@ -57,6 +59,9 @@ export const initializeSocket = (server) => {
   });
 
   ioInstance.on("connection", (socket) => {
+    // Record socket connection in online users presence registry
+    addOnlineUser(socket.user.id, socket.id);
+
     /**
      * Registers the client inside a room named after the conversation id.
      */
@@ -123,6 +128,25 @@ export const initializeSocket = (server) => {
         });
 
         ioInstance.to(conversationId).emit("receive_message", savedMessage);
+
+        // Schedule AI Response on sender activity
+        const receiverId = conversation.participants.find(
+          (p) => p.toString() !== senderId
+        );
+
+        if (receiverId) {
+          // 1. Cancel existing fallback directed at the sender
+          cancelAIReply(conversationId, senderId);
+
+          // 2. Schedule a new AI response for the receiver
+          scheduleAIReply({
+            conversationId,
+            senderId,
+            receiverId: receiverId.toString(),
+            latestContent: content.trim(),
+          });
+        }
+
       } catch (error) {
         socket.emit("message_error", {
           message: "Failed to send message",
@@ -132,7 +156,8 @@ export const initializeSocket = (server) => {
     });
 
     socket.on("disconnect", () => {
-      // Cleans up automatically
+      // Remove socket from online users presence registry
+      removeOnlineUser(socket.id);
     });
   });
 

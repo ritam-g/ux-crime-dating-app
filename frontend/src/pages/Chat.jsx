@@ -35,6 +35,7 @@ const Chat = ({ activeMatch, onPickMatch, onGoMatch }) => {
   const [messages, setMessages] = useState([]);
   const [content, setContent] = useState("");
   const [status, setStatus] = useState("Select a match to start chatting.");
+  const [typingUser, setTypingUser] = useState(null);
   const bottomRef = useRef(null);
   const seenMessageIds = useRef(new Set());
 
@@ -115,15 +116,27 @@ const Chat = ({ activeMatch, onPickMatch, onGoMatch }) => {
       setMessages((current) => [...current, incomingMessage]);
     };
 
+    const handleTyping = (data) => {
+      const currentUserId = user?._id || user?.id;
+      if (data.isTyping && String(data.userId) !== String(currentUserId)) {
+        setTypingUser(selectedMatch ? otherUserName(selectedMatch) : "Match");
+      } else {
+        setTypingUser(null);
+      }
+    };
+
     onReceiveMessage(handleMessage);
+    socket.on("typing", handleTyping);
+
     return () => {
       offReceiveMessage(handleMessage);
+      socket.off("typing", handleTyping);
     };
-  }, [selectedMatchId]);
+  }, [selectedMatchId, selectedMatch, user]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, typingUser]);
 
   const handleSend = async (event) => {
     event.preventDefault();
@@ -220,6 +233,14 @@ const Chat = ({ activeMatch, onPickMatch, onGoMatch }) => {
                 <div className="empty-chat">
                   <p className="muted">No messages yet.</p>
                   <p className="muted">Say hello and start the conversation.</p>
+                </div>
+              )}
+              {typingUser && (
+                <div className="typing-indicator">
+                  <span className="dot"></span>
+                  <span className="dot"></span>
+                  <span className="dot"></span>
+                  <span className="typing-text">{typingUser} is typing...</span>
                 </div>
               )}
               <div ref={bottomRef} />

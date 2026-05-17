@@ -1,16 +1,11 @@
 import { createMessage, getMessagesByConversationId } from "../dao/message.dao.js";
 import Conversation from "../models/Conversation.js";
 import { getIO } from "../socket/socketServer.js";
+import { cancelAIReply, scheduleAIReply } from "../jobs/aiReplyScheduler.js";
 
 /**
  * @file chatController.js
  * @description Handles chat history and message sending logic.
- *
- * Responsibilities:
- * - Verify that users belong to the conversation they are accessing.
- * - Save each message to MongoDB.
- * - Return chat history in the correct order.
- * - Broadcast saved messages to Socket.io rooms when available.
  */
 
 /**
@@ -47,14 +42,6 @@ export const getChatHistory = async (req, res) => {
 
 /**
  * Sends a message inside a conversation.
- *
- * Flow:
- * 1. Confirm the conversation belongs to the current user.
- * 2. Save the message in MongoDB.
- * 3. Emit it to the Socket.io room if the server is connected.
- *
- * @route POST /api/chat/send
- * @access Private
  */
 export const sendMessage = async (req, res) => {
   try {
@@ -78,6 +65,24 @@ export const sendMessage = async (req, res) => {
       content,
       isAIMessage: false,
     });
+
+    // AI Reply Scheduling integration
+    const receiverId = conversation.participants.find(
+      (p) => p.toString() !== req.user.id
+    );
+
+    if (receiverId) {
+      // 1. Cancel any active fallback replies directed to the sender since they responded
+      cancelAIReply(conversationId, req.user.id);
+
+      // 2. Schedule a new fallback reply for the receiver
+      scheduleAIReply({
+        conversationId,
+        senderId: req.user.id,
+        receiverId: receiverId.toString(),
+        latestContent: content.trim(),
+      });
+    }
 
     const io = getIO();
     if (io) {
