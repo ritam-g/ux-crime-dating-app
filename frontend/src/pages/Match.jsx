@@ -8,6 +8,7 @@
 import { useEffect, useMemo, useState } from "react";
 import UserCard from "../components/UserCard.jsx";
 import { getMatchUsers, dislikeUser, likeUser } from "../services/api.js";
+import { useAuth } from "../context/AuthContext.jsx";
 
 /**
  * @description Loads candidates and performs like/dislike actions against the API.
@@ -18,13 +19,12 @@ import { getMatchUsers, dislikeUser, likeUser } from "../services/api.js";
  * @access Private
  */
 const Match = ({ onOpenChat }) => {
+  const { user: authUser } = useAuth();
   const [users, setUsers] = useState([]);
   const [status, setStatus] = useState("Loading users...");
   const [matchNotice, setMatchNotice] = useState("");
   const [pendingMatch, setPendingMatch] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
-
-  const currentUser = useMemo(() => users[0] || null, [users]);
 
   const loadUsers = async () => {
     try {
@@ -35,8 +35,12 @@ const Match = ({ onOpenChat }) => {
       const response = await getMatchUsers();
       const items = response.users || [];
 
-      setUsers(items);
-      setStatus(items.length ? "" : "No more users available right now.");
+      const filteredItems = items.filter(
+        (item) => (item._id || item.id) !== (authUser?._id || authUser?.id)
+      );
+
+      setUsers(filteredItems);
+      setStatus(filteredItems.length ? "" : "No more users available right now.");
     } catch (error) {
       setStatus(error.response?.data?.message || "Failed to load users.");
     }
@@ -44,7 +48,7 @@ const Match = ({ onOpenChat }) => {
 
   useEffect(() => {
     loadUsers();
-  }, []);
+  }, [authUser]);
 
   const handleAction = async (targetUserId, action) => {
     if (actionLoading) return;
@@ -118,28 +122,17 @@ const Match = ({ onOpenChat }) => {
 
       {status ? <p className="muted">{status}</p> : null}
 
-      {currentUser ? (
-        <div className="match-stage">
-          <div className="match-stack">
+      {users.length > 0 ? (
+        <div className="flex flex-col gap-4 mt-6">
+          {users.map((user) => (
             <UserCard
-              user={currentUser}
+              key={user._id || user.id}
+              user={user}
               onLike={handleLike}
               onDislike={handleDislike}
               disabled={actionLoading}
-              compact
             />
-          </div>
-
-          {users.length > 1 ? (
-            <div className="peek-row">
-              {users.slice(1, 3).map((user) => (
-                <div className="peek-card" key={user._id || user.id}>
-                  <p className="peek-name">{user.name}</p>
-                  <p className="muted">{user.bio || "No bio yet."}</p>
-                </div>
-              ))}
-            </div>
-          ) : null}
+          ))}
         </div>
       ) : (
         !status && (
