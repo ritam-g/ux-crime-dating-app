@@ -25,7 +25,9 @@ const AuthGate = () => {
 
   useEffect(() => {
     if (!user) {
-      setScreen("login");
+      if (screen !== "login" && screen !== "register") {
+        setScreen("login");
+      }
     } else if (screen === "login" || screen === "register") {
       setScreen("match");
     }
@@ -57,9 +59,12 @@ const AuthGate = () => {
       return (
         <Matches
           onOpenChat={(match) => {
+            const currentUserId = user?._id || user?.id;
+            const initiatorId = match.initiator?._id || match.initiator?.id || match.initiator;
+            const otherUser = String(initiatorId) === String(currentUserId) ? match.targetUser : match.initiator;
             setActiveMatch({
               matchId: match._id,
-              peerName: match.initiator?.name || match.targetUser?.name,
+              peerName: otherUser?.name || "Match",
             });
             setScreen("chat");
           }}

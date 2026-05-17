@@ -9,6 +9,7 @@ import { useEffect, useMemo, useState } from "react";
 import UserCard from "../components/UserCard.jsx";
 import { getMatchUsers, dislikeUser, likeUser } from "../services/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
+import { playSound } from "../chaos/ChaosEngine.js";
 
 /**
  * @description Loads candidates and performs like/dislike actions against the API.
@@ -25,6 +26,7 @@ const Match = ({ onOpenChat }) => {
   const [matchNotice, setMatchNotice] = useState("");
   const [pendingMatch, setPendingMatch] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [matchPopup, setMatchPopup] = useState(null);
 
   const loadUsers = async () => {
     try {
@@ -54,7 +56,6 @@ const Match = ({ onOpenChat }) => {
     if (actionLoading) return;
 
     setActionLoading(true);
-    // Cursed UX: Play sound instantly based on action
     if (action === "like") {
       playSound("vine", 0.5);
     } else {
@@ -62,7 +63,7 @@ const Match = ({ onOpenChat }) => {
     }
 
     try {
-      // Cursed UX: Artificial processing delay to build emotional suspense
+      // Cursed UX: Suspense latency
       await new Promise((resolve) => setTimeout(resolve, 800));
 
       const response =
@@ -72,13 +73,19 @@ const Match = ({ onOpenChat }) => {
       setUsers((current) => current.filter((user) => (user._id || user.id) !== targetUserId));
 
       if (action === "like" && response?.conversationId) {
-        // Cursed billing overlay mock
-        setMatchNotice(`🎉 IT'S A MATCH! $1.99 HAS BEEN BILLED TO YOUR CRUSH'S CREDITS TO UNLOCK CHAT WITH ${removedUser?.name || "THEM"}!`);
         playSound("nyan", 0.1);
         
-        onOpenChat?.({
+        // Pick custom unhinged success quotes
+        const quotes = [
+          "You successfully unlocked emotional damage 💔",
+          "Congratulations. Another bad decision added to your life."
+        ];
+        const pickedQuote = quotes[Math.floor(Math.random() * quotes.length)];
+
+        setMatchPopup({
           matchId: response.conversationId,
           peerName: removedUser?.name || "Match",
+          quote: pickedQuote
         });
       }
     } catch (error) {
@@ -129,16 +136,38 @@ const Match = ({ onOpenChat }) => {
         </div>
       </div>
 
-      {matchNotice ? (
-        <div className="match-banner">
-          <p className="success-text">{matchNotice}</p>
-          {pendingMatch?.matchId ? (
-            <button className="btn primary" onClick={() => onOpenChat?.(pendingMatch)}>
-              Open chat
+      {matchPopup && (
+        <div className="fixed inset-0 bg-slate-950/90 z-[9999] flex items-center justify-center p-6 backdrop-blur-md">
+          <div className="bg-slate-900 border-2 border-rose-500/40 p-8 rounded-3xl max-w-md w-full text-center relative overflow-hidden shadow-2xl shadow-rose-500/10">
+            <div className="absolute -top-12 -left-12 w-24 h-24 bg-rose-500/20 rounded-full blur-2xl" />
+            <div className="absolute -bottom-12 -right-12 w-24 h-24 bg-pink-500/20 rounded-full blur-2xl" />
+            
+            <span className="text-5xl animate-bounce block">🎉</span>
+            <h2 className="text-2xl font-black text-white italic tracking-wide mt-4 uppercase">
+              MUTUAL DESPERATION ALIGNED!
+            </h2>
+            <p className="text-sm text-slate-350 mt-4 leading-relaxed font-light font-mono bg-slate-950/60 p-4 rounded-2xl border border-slate-800">
+              "{matchPopup.quote}"
+            </p>
+            
+            <p className="text-[10px] text-rose-455 font-bold uppercase tracking-widest mt-6 animate-pulse">
+              ⚠️ $1.99 HAS BEEN BILLED TO UNLOCK TELEPATHIC LINKS
+            </p>
+
+            <button
+              onClick={() => {
+                onOpenChat?.({
+                  matchId: matchPopup.matchId,
+                  peerName: matchPopup.peerName
+                });
+              }}
+              className="w-full mt-6 py-4 bg-gradient-to-r from-rose-500 to-pink-600 text-white font-black text-sm tracking-widest uppercase rounded-2xl shadow-lg hover:from-rose-600 hover:to-pink-700 active:scale-95 transition-all"
+            >
+              👉 Go to Matches
             </button>
-          ) : null}
+          </div>
         </div>
-      ) : null}
+      )}
 
       {status ? <p className="muted">{status}</p> : null}
 

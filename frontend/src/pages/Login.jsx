@@ -17,6 +17,7 @@ const Login = ({ onGoRegister }) => {
   // Runaway button state
   const [escapeCount, setEscapeCount] = useState(0);
   const [btnStyle, setBtnStyle] = useState({});
+  const [buttonStatus, setButtonStatus] = useState("🏃‍♂️ Agility: 100% (High escape energy)");
 
   useEffect(() => {
     // Autoplay spooky sound on page load
@@ -24,27 +25,39 @@ const Login = ({ onGoRegister }) => {
   }, []);
 
   const handleButtonHover = () => {
-    if (escapeCount < 4) {
-      const randomX = (Math.random() - 0.5) * 240;
-      const randomY = (Math.random() - 0.5) * 160;
+    if (escapeCount === 0) {
       setBtnStyle({
-        transform: `translate(${randomX}px, ${randomY}px)`,
-        transition: "all 0.15s ease-out",
+        transform: `translate(${Math.random() > 0.5 ? 120 : -120}px, ${Math.random() > 0.5 ? 40 : -40}px)`,
+        transition: "all 0.2s ease-out",
         position: "relative",
         zIndex: 50,
       });
-      setEscapeCount((c) => c + 1);
+      setEscapeCount(1);
+      setButtonStatus("🏃‍♂️ Agility: 50% (Slightly out of breath)");
       playSound("sad", 0.3);
-    } else {
+    } else if (escapeCount === 1) {
+      setBtnStyle({
+        transform: `translate(${Math.random() > 0.5 ? -85 : 85}px, ${Math.random() > 0.5 ? -35 : 35}px)`,
+        transition: "all 0.2s ease-out",
+        position: "relative",
+        zIndex: 50,
+      });
+      setEscapeCount(2);
+      setButtonStatus("🥵 Agility: 10% (Severely fatigued)");
+      playSound("sad", 0.3);
+    } else if (escapeCount === 2) {
       setBtnStyle({});
+      setEscapeCount(3);
+      setButtonStatus("💤 Button Exhausted (Safe to click now)");
+      playSound("pop", 0.3);
     }
   };
 
   const handleFormChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
-    // Reset runaway button occasionally to build hope
-    if (Math.random() < 0.2) {
+    if (!value && !form.email && !form.password) {
       setEscapeCount(0);
+      setButtonStatus("🏃‍♂️ Agility: 100% (High escape energy)");
       setBtnStyle({});
     }
   };
@@ -78,12 +91,12 @@ const Login = ({ onGoRegister }) => {
       <div className="absolute top-2 right-4 text-[10px] font-mono text-rose-500/40 animate-pulse">
         RIZZ SURVEILLANCE ENABLED
       </div>
-      <p className="eyebrow text-rose-450 tracking-widest uppercase">Welcome back, victim</p>
+      <p className="eyebrow text-rose-455 tracking-widest uppercase">Welcome back, victim</p>
       <h1 className="text-3xl font-black text-white italic tracking-wide">Log in to continue the chaos.</h1>
 
       <form onSubmit={handleSubmit} className="form-grid mt-6">
-        <label className="flex flex-col gap-2">
-          <span className="text-slate-300 font-semibold text-sm">Corporate Tracking Email</span>
+        <label className="flex flex-col gap-2 full">
+          <span className="text-slate-350 font-semibold text-sm">Corporate Tracking Email</span>
           <input
             type="email"
             value={form.email}
@@ -94,8 +107,8 @@ const Login = ({ onGoRegister }) => {
           />
         </label>
         
-        <label className="flex flex-col gap-2">
-          <span className="text-slate-300 font-semibold text-sm">Secret Password</span>
+        <label className="flex flex-col gap-2 full">
+          <span className="text-slate-355 font-semibold text-sm">Secret Password</span>
           <input
             type="password"
             value={form.password}
@@ -117,7 +130,7 @@ const Login = ({ onGoRegister }) => {
           </p>
         ) : null}
 
-        <div className="full flex justify-center mt-4">
+        <div className="full flex flex-col items-center gap-3 mt-4">
           <button
             onMouseEnter={handleButtonHover}
             className="btn primary px-8 py-3.5 rounded-full font-extrabold text-sm tracking-widest uppercase bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 shadow-lg shadow-rose-500/20"
@@ -127,6 +140,10 @@ const Login = ({ onGoRegister }) => {
           >
             {loading ? "SURRENDERING SESSION..." : "SUBMIT RIZZ CREDENTIALS"}
           </button>
+          
+          <span className="text-[10px] font-mono text-slate-500 tracking-wider">
+            [ Telepathic Button Telemetry: <strong className="text-rose-400">{buttonStatus}</strong> ]
+          </span>
         </div>
       </form>
 

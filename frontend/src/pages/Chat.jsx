@@ -118,7 +118,7 @@ const Chat = ({ activeMatch, onPickMatch, onGoMatch }) => {
 
   useEffect(() => {
     loadMatches();
-  }, []);
+  }, [activeMatch]);
 
   useEffect(() => {
     if (!selectedMatchId) return;
