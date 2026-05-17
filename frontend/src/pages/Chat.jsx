@@ -9,8 +9,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
 import MessageBubble from "../components/MessageBubble.jsx";
 import { playSound } from "../chaos/ChaosEngine.js";
-import MemeVideoOverlay from "../chaos/MemeVideoOverlay.jsx";
-import { getRandomVideoAsset } from "../chaos/memeVideoManager.js";
+import ChaosVideoPlayer from "../components/ChaosVideoPlayer.jsx";
+import { playChaosVideo, playChaosAudio, stopChaosMedia } from "../utils/chaosTriggers.js";
 import {
   getChatHistory,
   getMyMatches,
@@ -269,7 +269,7 @@ const Chat = ({ activeMatch, onPickMatch, onGoMatch }) => {
 
     if (!content.trim() || !selectedMatchId) return;
 
-    // Start wait inactivity countdown (2.0 seconds) for meme disruption
+    // Start wait inactivity countdown (5.0 seconds) for meme disruption
     if (memeTimerRef.current) {
       clearTimeout(memeTimerRef.current);
     }
@@ -277,11 +277,11 @@ const Chat = ({ activeMatch, onPickMatch, onGoMatch }) => {
 
     memeTimerRef.current = setTimeout(() => {
       if (typingUser) return; // Suppress if peer is actively typing
-      const randomMeme = getRandomVideoAsset("ignored");
+      const randomMeme = playChaosVideo("ignored");
       if (randomMeme) {
         setActiveMemeVideo(randomMeme);
       }
-    }, 2000);
+    }, 5000);
 
     const payload = {
       conversationId: selectedMatchId,
@@ -454,9 +454,12 @@ const Chat = ({ activeMatch, onPickMatch, onGoMatch }) => {
           </div>
         )}
       {activeMemeVideo && (
-        <MemeVideoOverlay
+        <ChaosVideoPlayer
           videoAsset={activeMemeVideo}
-          onClose={() => setActiveMemeVideo(null)}
+          onClose={() => {
+            setActiveMemeVideo(null);
+            stopChaosMedia();
+          }}
         />
       )}
       </section>

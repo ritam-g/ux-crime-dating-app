@@ -26,7 +26,7 @@ const MemeVideoOverlay = ({ videoAsset, onClose }) => {
           console.warn("Autoplay blocked, waiting for click", err);
         });
       }
-    }, 5000);
+    }, 1200);
 
     return () => clearTimeout(timer);
   }, []);
@@ -137,7 +137,7 @@ const MemeVideoOverlay = ({ videoAsset, onClose }) => {
           "{videoAsset.title}"
         </p>
         <p className="text-[8px] font-mono text-slate-500">
-          This clip is playing because you got left on read for 2.0s.
+          This clip is playing because you got left on read for 5.0s.
         </p>
       </div>
     </div>

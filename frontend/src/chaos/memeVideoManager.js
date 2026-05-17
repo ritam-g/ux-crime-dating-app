@@ -16,20 +16,11 @@ export const videoAssets = [
   {
     id: "subway_surfers",
     title: "🧠 Subway Surfers Gameplay (To Keep Your Empath Brain Focused)",
-    src: "https://assets.mixkit.co/videos/preview/mixkit-gaming-controller-and-hands-in-close-up-39722-large.mp4",
+    src: "https://media.istockphoto.com/id/2205736500/video/man-in-glasses-cringes-with-embarrassment-at-awkward-moment.mp4?s=mp4-640x640-is&k=20&c=LgDcpEmv5jhQKFFCDv04NmHaNzWldsJ7H-6CX8gglic=",
     triggerType: "ignored",
     volume: 0.3,
     cooldown: 8000,
     duration: 15,
-  },
-  {
-    id: "awkward_silence",
-    title: "🌧️ Awkward Silence & Severe Emotional Damage",
-    src: "https://assets.mixkit.co/videos/preview/mixkit-raindrops-on-a-window-sill-1854-large.mp4",
-    triggerType: "ignored",
-    volume: 0.6,
-    cooldown: 6000,
-    duration: 12,
   }
 ];
 

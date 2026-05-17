@@ -10,16 +10,16 @@ The wait-time meme overlay behaves according to strict frontend criteria to keep
 
 1. **Activation Trigger**:
    - The user clicks "Submit Rizz Credentials" (sends a chat message) in the real-time window.
-   - An active **2.0-second inactivity countdown timer** starts.
+   - An active **5.0-second inactivity countdown timer** starts.
 
 2. **Suppression (No Video Played)**:
-   - If the peer responds within 2.0 seconds, the timer is cleared and no video displays.
-   - If the user changes active chats (switches conversations) during the 2.0s delay, the timer is killed.
+   - If the peer responds within 5.0 seconds, the timer is cleared and no video displays.
+   - If the user changes active chats (switches conversations) during the 5.0s delay, the timer is killed.
    - If the socket gets disconnected or the user leaves the page, the timer is cleared.
    - Old history loads do not trigger timers.
 
 3. **Meme Playback**:
-   - When the 2.0-second timer completes, a random meme video is selected using `getRandomVideoAsset()`.
+   - When the 5.0-second timer completes, a random meme video is selected using `getRandomVideoAsset()`.
    - The draggable, glassmorphic `<MemeVideoOverlay />` spawns floating over the layout.
    - A brief, annoying loader simulation displays: `🚨 BUFFERING COGNITIVE RIZZ RESPONSE...`
    - The chosen clip streams with audio.
@@ -33,28 +33,32 @@ The wait-time meme overlay behaves according to strict frontend criteria to keep
 
 ## 📂 Asset Registry & Replacement
 
-All assets reside inside the centralized configuration file:
-👉 **`frontend/src/chaos/memeVideoManager.js`**
+All assets reside inside the centralized configuration files:
+👉 **`frontend/src/utils/chaosVideoManager.js`**
+👉 **`frontend/src/utils/chaosAudioManager.js`**
 
-### Structure of an Asset
+### Structure of a Video Asset
 ```javascript
 {
-  id: "unique_id",
-  title: "Display Title of wait-card",
-  src: "https://url-or-local-path.mp4",
+  id: "ignored_bunny",
+  title: "🐇 Big Buck Bunny Interruption",
+  src: "/videos/mov_bbb.mp4",
+  volume: 0.4,
+  cooldown: 10000,
   triggerType: "ignored",
-  volume: 0.5, // 0.0 - 1.0
-  cooldown: 5000,
-  duration: 10 // seconds
+  duration: 12,
+  probability: 1.0,
+  enabled: true
 }
 ```
 
-### Injecting Custom MP4 Assets
-To add your own high-fidelity custom videos for the competition:
-1. Save your MP4 clips into `frontend/public/memes/` (e.g. `subway_surfers.mp4`, `sad_violin.mp4`).
-2. Update the asset source configuration in `memeVideoManager.js`:
+### Injecting Custom Media Assets
+To add your own high-fidelity custom videos and audios for the competition:
+1. Save your MP4 clips into `frontend/public/videos/` and MP3 audio clips into `frontend/public/audio/`.
+2. Update the asset source configuration in `chaosVideoManager.js` and `chaosAudioManager.js`:
    ```javascript
-   src: "/memes/subway_surfers.mp4"
+   src: "/videos/your-clip.mp4"
+   src: "/audio/your-sound.mp3"
    ```
 
 ---

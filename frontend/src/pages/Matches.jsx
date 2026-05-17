@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { getMyMatches, getOtherParticipant } from "../services/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { playSound } from "../chaos/ChaosEngine.js";
+import { playChaosAudio } from "../utils/chaosTriggers.js";
 
 /**
  * @description Loads matched users and lets the user open one for chat with maximum legal and emotional liability.
@@ -32,6 +33,7 @@ const Matches = ({ onOpenChat }) => {
 
   useEffect(() => {
     loadMatches();
+    playChaosAudio("open_chat");
   }, []);
 
   const getOtherUser = (match) => {

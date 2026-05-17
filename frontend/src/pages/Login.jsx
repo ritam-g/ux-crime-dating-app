@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
 import { playSound } from "../chaos/ChaosEngine.js";
+import { playChaosAudio } from "../utils/chaosTriggers.js";
 
 /**
  * @description Logs the user in through the backend cookie auth flow with maximum emotional friction.
@@ -20,8 +21,8 @@ const Login = ({ onGoRegister }) => {
   const [buttonStatus, setButtonStatus] = useState("🏃‍♂️ Agility: 100% (High escape energy)");
 
   useEffect(() => {
-    // Autoplay spooky sound on page load
-    playSound("error", 0.1);
+    // Play evil laugh on login mount
+    playChaosAudio("login");
   }, []);
 
   const handleButtonHover = () => {

@@ -10,6 +10,7 @@ import UserCard from "../components/UserCard.jsx";
 import { getMatchUsers, dislikeUser, likeUser } from "../services/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { playSound } from "../chaos/ChaosEngine.js";
+import { playChaosAudio } from "../utils/chaosTriggers.js";
 
 /**
  * @description Loads candidates and performs like/dislike actions against the API.
@@ -73,7 +74,14 @@ const Match = ({ onOpenChat }) => {
       setUsers((current) => current.filter((user) => (user._id || user.id) !== targetUserId));
 
       if (action === "like" && response?.conversationId) {
-        playSound("nyan", 0.1);
+        // Play local unhinged like success sound
+        playChaosAudio("like_success");
+
+        // Inflict physical shake chaos upon the layout
+        document.body.classList.add("shake-chaos");
+        setTimeout(() => {
+          document.body.classList.remove("shake-chaos");
+        }, 600);
         
         // Pick custom unhinged success quotes
         const quotes = [
