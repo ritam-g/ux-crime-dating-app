@@ -31,10 +31,11 @@ export const getIO = () => ioInstance;
 export const initializeSocket = (server) => {
   ioInstance = new Server(server, {
     cors: {
-      origin: process.env.CLIENT_URL || "http://localhost:5173",
+      origin: config.clientUrl || true,
       methods: ["GET", "POST", "PUT", "DELETE"],
       credentials: true,
     },
+    transports: ["websocket", "polling"],
   });
 
   // Verify authorization at connection handshake using the JWT Cookie

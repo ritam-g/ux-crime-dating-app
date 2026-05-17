@@ -10,18 +10,28 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import compression from "compression";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import config from "./config/config.js";
 import authRoutes from "./routes/authRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
 import matchRoutes from "./routes/matchRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 
 const app = express();
+const currentDir = path.dirname(fileURLToPath(import.meta.url));
+const publicDir = path.resolve(currentDir, "../public");
+const indexFile = path.join(publicDir, "index.html");
 
 // Trust proxy for secure cookies in production behind Render/Railway
 app.set("trust proxy", 1);
 
 // Production-safe Security Headers
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+  })
+);
 
 // Asset compression
 app.use(compression());
@@ -29,7 +39,7 @@ app.use(compression());
 // Strictly typed CORS
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    origin: config.clientUrl || true,
     credentials: true,
   })
 );
@@ -58,12 +68,26 @@ app.use("/api/user", userRoutes);
 app.use("/api/match", matchRoutes);
 app.use("/api/chat", chatRoutes);
 
+app.use("/api", (req, res) => {
+  return res.status(404).json({ message: "API route not found" });
+});
+
+app.use(express.static(publicDir));
+
 /**
- * @description Returns a consistent response for unknown routes.
- * @returns JSON 404 response.
+ * @description Serves the React app for browser routes without colliding with API or Socket.io endpoints.
+ * @returns HTML app shell for SPA routes.
  * @route N/A
  * @access Public
  */
+app.get(/.*/, (req, res, next) => {
+  if (req.path.startsWith("/api") || req.path.startsWith("/socket.io")) {
+    return next();
+  }
+
+  return res.sendFile(indexFile);
+});
+
 app.use((req, res) => {
   return res.status(404).json({ message: "Route not found" });
 });
