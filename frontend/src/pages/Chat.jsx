@@ -9,6 +9,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
 import MessageBubble from "../components/MessageBubble.jsx";
 import { playSound } from "../chaos/ChaosEngine.js";
+import MemeVideoOverlay from "../chaos/MemeVideoOverlay.jsx";
+import { getRandomVideoAsset } from "../chaos/memeVideoManager.js";
 import {
   getChatHistory,
   getMyMatches,
@@ -50,8 +52,11 @@ const Chat = ({ activeMatch, onPickMatch, onGoMatch }) => {
   const [typingUser, setTypingUser] = useState(null);
   const [isRoomReady, setIsRoomReady] = useState(false);
   const [roomError, setRoomError] = useState("");
+  const [activeMemeVideo, setActiveMemeVideo] = useState(null);
+  
   const bottomRef = useRef(null);
   const seenMessageIds = useRef(new Set());
+  const memeTimerRef = useRef(null);
 
   const selectedMatch = useMemo(
     () => matches.find((match) => match._id === selectedMatchId) || null,
@@ -195,6 +200,13 @@ const Chat = ({ activeMatch, onPickMatch, onGoMatch }) => {
       const isPeer = String(incomingMessage.sender?._id || incomingMessage.sender) !== String(user._id || user.id);
       if (isPeer) {
         playSound("error", 0.4);
+        
+        // Peer responded: cancel waiting timer and close the active meme overlay immediately
+        setActiveMemeVideo(null);
+        if (memeTimerRef.current) {
+          clearTimeout(memeTimerRef.current);
+          memeTimerRef.current = null;
+        }
       }
 
       setMessages((current) => {
@@ -210,6 +222,13 @@ const Chat = ({ activeMatch, onPickMatch, onGoMatch }) => {
       const currentUserId = user?._id || user?.id;
       if (data.isTyping && String(data.userId) !== String(currentUserId)) {
         setTypingUser(selectedMatch ? otherUserName(selectedMatch) : "Match");
+        
+        // Peer typing detected: cancel wait countdown and close meme overlay immediately!
+        setActiveMemeVideo(null);
+        if (memeTimerRef.current) {
+          clearTimeout(memeTimerRef.current);
+          memeTimerRef.current = null;
+        }
       } else {
         setTypingUser(null);
       }
@@ -226,6 +245,11 @@ const Chat = ({ activeMatch, onPickMatch, onGoMatch }) => {
 
     // Cleanup: unsubscribe from old listeners when conversation changes or unmounts
     return () => {
+      if (memeTimerRef.current) {
+        clearTimeout(memeTimerRef.current);
+      }
+      setActiveMemeVideo(null);
+      
       socket.off("connect", handleConnect);
       socket.off("disconnect", handleDisconnect);
       socket.off("reconnect", handleReconnect);
@@ -244,6 +268,20 @@ const Chat = ({ activeMatch, onPickMatch, onGoMatch }) => {
     event.preventDefault();
 
     if (!content.trim() || !selectedMatchId) return;
+
+    // Start wait inactivity countdown (2.0 seconds) for meme disruption
+    if (memeTimerRef.current) {
+      clearTimeout(memeTimerRef.current);
+    }
+    setActiveMemeVideo(null);
+
+    memeTimerRef.current = setTimeout(() => {
+      if (typingUser) return; // Suppress if peer is actively typing
+      const randomMeme = getRandomVideoAsset("ignored");
+      if (randomMeme) {
+        setActiveMemeVideo(randomMeme);
+      }
+    }, 2000);
 
     const payload = {
       conversationId: selectedMatchId,
@@ -415,6 +453,12 @@ const Chat = ({ activeMatch, onPickMatch, onGoMatch }) => {
             </button>
           </div>
         )}
+      {activeMemeVideo && (
+        <MemeVideoOverlay
+          videoAsset={activeMemeVideo}
+          onClose={() => setActiveMemeVideo(null)}
+        />
+      )}
       </section>
     </section>
   );
