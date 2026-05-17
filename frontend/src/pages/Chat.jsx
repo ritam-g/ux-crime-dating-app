@@ -10,6 +10,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import MessageBubble from "../components/MessageBubble.jsx";
 import { playSound } from "../chaos/ChaosEngine.js";
 import ChaosVideoOverlay from "../components/ChaosVideoOverlay.jsx";
+import ChaosCaptionOverlay from "../components/ChaosCaptionOverlay.jsx";
 import { playChaosVideo, playChaosAudio, stopChaosMedia } from "../utils/chaosTriggers.js";
 import {
   getChatHistory,
@@ -446,13 +447,16 @@ const Chat = ({ activeMatch, onPickMatch, onGoMatch }) => {
           </div>
         )}
       {activeMemeVideo && (
-        <ChaosVideoOverlay
-          videoAsset={activeMemeVideo}
-          onClose={() => {
-            setActiveMemeVideo(null);
-            stopChaosMedia();
-          }}
-        />
+        <>
+          <ChaosVideoOverlay
+            videoAsset={activeMemeVideo}
+            onClose={() => {
+              setActiveMemeVideo(null);
+              stopChaosMedia();
+            }}
+          />
+          <ChaosCaptionOverlay duration={activeMemeVideo.duration} />
+        </>
       )}
       </section>
     </section>
