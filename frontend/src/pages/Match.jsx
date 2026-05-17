@@ -57,18 +57,11 @@ const Match = ({ onOpenChat }) => {
       const removedUser = users.find((user) => (user._id || user.id) === targetUserId) || null;
       setUsers((current) => current.filter((user) => (user._id || user.id) !== targetUserId));
 
-      if (response?.isMatched) {
-        const matchId = response.match?._id;
-        setMatchNotice("It's a match. Open chat when you are ready.");
-        setPendingMatch({
-          matchId,
+      if (action === "like" && response?.conversationId) {
+        onOpenChat?.({
+          matchId: response.conversationId,
           peerName: removedUser?.name || "Match",
         });
-      }
-
-      if (response && !response.isMatched) {
-        setMatchNotice("");
-        setPendingMatch(null);
       }
     } catch (error) {
       setStatus(error.response?.data?.message || "Action failed. Please try again.");

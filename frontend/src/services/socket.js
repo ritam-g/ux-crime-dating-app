@@ -27,8 +27,8 @@ export const disconnectSocket = () => {
   }
 };
 
-export const joinRoom = (matchId) => {
-  socket.emit("join_room", { matchId });
+export const joinRoom = (conversationId) => {
+  socket.emit("join_room", { conversationId });
 };
 
 export const sendMessage = (payload) => {

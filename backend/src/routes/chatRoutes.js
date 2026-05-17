@@ -11,7 +11,7 @@ import authMiddleware from "../middleware/authMiddleware.js";
  */
 const router = Router();
 
-router.get("/:matchId", authMiddleware, getChatHistory);
+router.get("/:conversationId", authMiddleware, getChatHistory);
 router.post("/send", authMiddleware, sendMessage);
 
 export default router;

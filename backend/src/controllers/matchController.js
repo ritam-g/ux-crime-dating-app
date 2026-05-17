@@ -51,6 +51,10 @@ export const getUsersForMatching = async (req, res) => {
  * @route POST /api/match/like/:targetUserId
  * @access Private
  */
+import Conversation from "../models/Conversation.js";
+
+// Keep rest of controller imports and then likeUser:
+
 export const likeUser = async (req, res) => {
   try {
     const { targetUserId } = req.params;
@@ -69,24 +73,26 @@ export const likeUser = async (req, res) => {
       action: "like",
     });
 
-    const reverseLike = await findReverseLike(targetUserId, req.user.id);
+    // Deterministic conversation ID sorting user ids
+    const conversationId = [req.user.id, targetUserId].sort().join("_");
 
-    if (!reverseLike) {
-      return res.status(200).json({
-        isMatched: false,
-        match: savedAction,
-      });
-    }
-
-    const { currentRecord, reverseRecord } = await markBothRecordsAsMatched(
-      req.user.id,
-      targetUserId
+    // Upsert the conversation document
+    await Conversation.findOneAndUpdate(
+      { conversationId },
+      {
+        $setOnInsert: {
+          conversationId,
+          participants: [req.user.id, targetUserId],
+        },
+      },
+      { upsert: true, new: true }
     );
 
     return res.status(200).json({
-      isMatched: true,
-      match: currentRecord,
-      reverseMatch: reverseRecord,
+      isMatched: false,
+      conversationId,
+      canChat: true,
+      match: savedAction,
     });
   } catch (error) {
     return res.status(500).json({
@@ -144,15 +150,35 @@ export const dislikeUser = async (req, res) => {
  */
 export const getMyMatchesController = async (req, res) => {
   try {
-    const matches = await getMyMatches(req.user.id);
+    const conversations = await Conversation.find({
+      participants: req.user.id,
+    }).populate("participants", "name email age gender bio interests");
+
+    // Format conversations seamlessly to look like matches for frontend backward compatibility
+    const matches = conversations.map((conv) => {
+      const otherUser = conv.participants.find(
+        (p) => p._id.toString() !== req.user.id
+      );
+      const currentUserDoc = conv.participants.find(
+        (p) => p._id.toString() === req.user.id
+      );
+
+      return {
+        _id: conv.conversationId, // Important: use conversationId as the _id so selectedMatchId works!
+        initiator: currentUserDoc,
+        targetUser: otherUser,
+        isMatched: true,
+        matchedAt: conv.createdAt,
+      };
+    });
 
     return res.status(200).json({
-      message: "Matches fetched successfully",
+      message: "Conversations fetched successfully",
       matches,
     });
   } catch (error) {
     return res.status(500).json({
-      message: "Failed to fetch matches",
+      message: "Failed to fetch conversations",
       error: error.message,
     });
   }

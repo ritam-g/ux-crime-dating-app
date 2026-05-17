@@ -60,8 +60,8 @@ export const getMyMatches = async () => {
   return response.data;
 };
 
-export const getChatHistory = async (matchId) => {
-  const response = await api.get(`/chat/${matchId}`);
+export const getChatHistory = async (conversationId) => {
+  const response = await api.get(`/chat/${conversationId}`);
   return response.data;
 };
 

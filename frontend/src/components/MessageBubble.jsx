@@ -9,13 +9,13 @@
  * @route N/A
  * @access Public
  */
-const MessageBubble = ({ message, isMine }) => {
+const MessageBubble = ({ message, isMine, peerName = "User", myName = "Me" }) => {
   return (
     <div className={isMine ? "message-row mine" : "message-row"}>
       <div className={message.isAIMessage ? "bubble ai" : "bubble"}>
         <p>{message.content}</p>
         <span className="message-meta">
-          {message.isAIMessage ? "AI" : "User"}
+          {message.isAIMessage ? "AI" : (isMine ? myName : peerName)}
         </span>
       </div>
     </div>

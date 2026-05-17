@@ -19,11 +19,11 @@ export const createMessage = async (messageData) => {
 };
 
 /**
- * Returns the full chat history for a match in chronological order.
+ * Returns the full chat history for a conversation in chronological order.
  *
- * @param {string} matchId - The match identifier.
+ * @param {string} conversationId - The conversation identifier.
  * @returns {Promise<Array>} Sorted chat messages.
  */
-export const getMessagesByMatchId = async (matchId) => {
-  return Message.find({ matchId }).sort({ createdAt: 1 });
+export const getMessagesByConversationId = async (conversationId) => {
+  return Message.find({ conversationId }).sort({ createdAt: 1 });
 };

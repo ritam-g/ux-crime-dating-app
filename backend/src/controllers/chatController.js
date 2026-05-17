@@ -1,8 +1,5 @@
-import { createMessage, getMessagesByMatchId } from "../dao/message.dao.js";
-import {
-  findMatchedRecordForUser,
-  findMatchBetweenUsers,
-} from "../dao/match.dao.js";
+import { createMessage, getMessagesByConversationId } from "../dao/message.dao.js";
+import Conversation from "../models/Conversation.js";
 import { getIO } from "../socket/socketServer.js";
 
 /**
@@ -10,28 +7,31 @@ import { getIO } from "../socket/socketServer.js";
  * @description Handles chat history and message sending logic.
  *
  * Responsibilities:
- * - Verify that only matched users can chat.
+ * - Verify that users belong to the conversation they are accessing.
  * - Save each message to MongoDB.
  * - Return chat history in the correct order.
  * - Broadcast saved messages to Socket.io rooms when available.
  */
 
 /**
- * Returns the chat history for a matched conversation.
+ * Returns the chat history for a conversation.
  *
- * @route GET /api/chat/:matchId
+ * @route GET /api/chat/:conversationId
  * @access Private
  */
 export const getChatHistory = async (req, res) => {
   try {
-    const { matchId } = req.params;
+    const { conversationId } = req.params;
 
-    const match = await findMatchedRecordForUser(matchId, req.user.id);
-    if (!match) {
+    const conversation = await Conversation.findOne({
+      conversationId,
+      participants: req.user.id,
+    });
+    if (!conversation) {
       return res.status(403).json({ message: "You are not allowed to view this chat" });
     }
 
-    const messages = await getMessagesByMatchId(matchId);
+    const messages = await getMessagesByConversationId(conversationId);
 
     return res.status(200).json({
       message: "Chat history fetched successfully",
@@ -46,7 +46,7 @@ export const getChatHistory = async (req, res) => {
 };
 
 /**
- * Sends a message inside a matched conversation.
+ * Sends a message inside a conversation.
  *
  * Flow:
  * 1. Confirm the conversation belongs to the current user.
@@ -58,19 +58,22 @@ export const getChatHistory = async (req, res) => {
  */
 export const sendMessage = async (req, res) => {
   try {
-    const { matchId, content } = req.body;
+    const { conversationId, content } = req.body;
 
-    if (!matchId || !content) {
-      return res.status(400).json({ message: "matchId and content are required" });
+    if (!conversationId || !content) {
+      return res.status(400).json({ message: "conversationId and content are required" });
     }
 
-    const match = await findMatchedRecordForUser(matchId, req.user.id);
-    if (!match) {
+    const conversation = await Conversation.findOne({
+      conversationId,
+      participants: req.user.id,
+    });
+    if (!conversation) {
       return res.status(403).json({ message: "You are not allowed to send messages in this chat" });
     }
 
     const savedMessage = await createMessage({
-      matchId,
+      conversationId,
       sender: req.user.id,
       content,
       isAIMessage: false,
@@ -78,7 +81,7 @@ export const sendMessage = async (req, res) => {
 
     const io = getIO();
     if (io) {
-      io.to(matchId).emit("receive_message", savedMessage);
+      io.to(conversationId).emit("receive_message", savedMessage);
     }
 
     return res.status(201).json({
@@ -94,11 +97,9 @@ export const sendMessage = async (req, res) => {
 };
 
 /**
- * Verifies that two users have an active match.
- *
- * This helper is useful if future AI fallback logic needs to check whether
- * a conversation is valid before auto-responding.
+ * Verifies that two users have a conversation.
  */
 export const verifyMatchedConversation = async (userAId, userBId) => {
-  return findMatchBetweenUsers(userAId, userBId);
+  const conversationId = [userAId.toString(), userBId.toString()].sort().join("_");
+  return Conversation.findOne({ conversationId });
 };

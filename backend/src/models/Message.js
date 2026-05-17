@@ -9,9 +9,8 @@ import mongoose from "mongoose";
  */
 const messageSchema = new mongoose.Schema(
   {
-    matchId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Match",
+    conversationId: {
+      type: String,
       required: true,
     },
     sender: {
@@ -34,7 +33,7 @@ const messageSchema = new mongoose.Schema(
   }
 );
 
-messageSchema.index({ matchId: 1, createdAt: 1 });
+messageSchema.index({ conversationId: 1, createdAt: 1 });
 
 const Message = mongoose.model("Message", messageSchema);
 

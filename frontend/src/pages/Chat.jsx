@@ -54,8 +54,9 @@ const Chat = ({ activeMatch, onPickMatch, onGoMatch }) => {
   const otherUserName = (match) => {
     if (!match || !user) return "Chat";
 
+    const currentUserId = user._id || user.id;
     const initiatorId = match.initiator?._id || match.initiator?.id;
-    const other = initiatorId === user.id ? match.targetUser : match.initiator;
+    const other = String(initiatorId) === String(currentUserId) ? match.targetUser : match.initiator;
 
     return other?.name || "Match";
   };
@@ -97,9 +98,9 @@ const Chat = ({ activeMatch, onPickMatch, onGoMatch }) => {
   useEffect(() => {
     const handleMessage = (incomingMessage) => {
       const incomingId = incomingMessage._id || incomingMessage.id;
-      const incomingMatchId = incomingMessage.matchId?._id || incomingMessage.matchId;
+      const incomingConvId = incomingMessage.conversationId;
 
-      if (String(incomingMatchId) !== String(selectedMatchId)) {
+      if (String(incomingConvId) !== String(selectedMatchId)) {
         return;
       }
 
@@ -130,8 +131,8 @@ const Chat = ({ activeMatch, onPickMatch, onGoMatch }) => {
     if (!content.trim() || !selectedMatchId) return;
 
     const payload = {
-      matchId: selectedMatchId,
-      senderId: user.id,
+      conversationId: selectedMatchId,
+      senderId: user._id || user.id,
       content: content.trim(),
     };
 
@@ -144,7 +145,7 @@ const Chat = ({ activeMatch, onPickMatch, onGoMatch }) => {
     }
 
     const response = await sendChatMessage({
-      matchId: selectedMatchId,
+      conversationId: selectedMatchId,
       content: content.trim(),
     });
 
@@ -210,7 +211,9 @@ const Chat = ({ activeMatch, onPickMatch, onGoMatch }) => {
                   <MessageBubble
                     key={message._id}
                     message={message}
-                    isMine={(message.sender?._id || message.sender) === user.id}
+                    isMine={String(message.sender?._id || message.sender) === String(user._id || user.id)}
+                    peerName={selectedMatch ? otherUserName(selectedMatch) : "Match"}
+                    myName={user?.name || "Me"}
                   />
                 ))
               ) : (
