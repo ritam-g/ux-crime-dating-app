@@ -54,7 +54,17 @@ const Match = ({ onOpenChat }) => {
     if (actionLoading) return;
 
     setActionLoading(true);
+    // Cursed UX: Play sound instantly based on action
+    if (action === "like") {
+      playSound("vine", 0.5);
+    } else {
+      playSound("sad", 0.4);
+    }
+
     try {
+      // Cursed UX: Artificial processing delay to build emotional suspense
+      await new Promise((resolve) => setTimeout(resolve, 800));
+
       const response =
         action === "like" ? await likeUser(targetUserId) : await dislikeUser(targetUserId);
 
@@ -62,13 +72,18 @@ const Match = ({ onOpenChat }) => {
       setUsers((current) => current.filter((user) => (user._id || user.id) !== targetUserId));
 
       if (action === "like" && response?.conversationId) {
+        // Cursed billing overlay mock
+        setMatchNotice(`🎉 IT'S A MATCH! $1.99 HAS BEEN BILLED TO YOUR CRUSH'S CREDITS TO UNLOCK CHAT WITH ${removedUser?.name || "THEM"}!`);
+        playSound("nyan", 0.1);
+        
         onOpenChat?.({
           matchId: response.conversationId,
           peerName: removedUser?.name || "Match",
         });
       }
     } catch (error) {
-      setStatus(error.response?.data?.message || "Action failed. Please try again.");
+      setStatus(error.response?.data?.message || "Action failed miserably. Try swiping harder.");
+      playSound("error", 0.5);
     } finally {
       setActionLoading(false);
     }
@@ -83,29 +98,34 @@ const Match = ({ onOpenChat }) => {
   };
 
   return (
-    <section className="panel">
-      <div className="section-header">
+    <section className="panel border-2 border-slate-800 bg-slate-950/80 shadow-2xl relative overflow-hidden">
+      {/* Glitch Overlay */}
+      <div className="absolute top-2 right-4 text-[9px] font-mono text-rose-500/20">
+        PSYCHOLOGICAL EXPERIMENT #48A
+      </div>
+
+      <div className="section-header border-b border-slate-800/60 pb-4">
         <div>
-          <p className="eyebrow">Matching</p>
-          <h1>Pick people from the queue.</h1>
+          <p className="eyebrow text-rose-450 tracking-widest uppercase">Love Queue Surveillance</p>
+          <h1 className="text-3xl font-black text-white italic tracking-wide">Pick your emotional hostage.</h1>
         </div>
-        <button className="btn secondary" onClick={loadUsers} disabled={actionLoading}>
-          Refresh
+        <button className="px-5 py-2.5 bg-rose-500/10 border border-rose-500/30 text-rose-300 font-bold rounded-full hover:bg-rose-500/20 active:scale-95 transition-all text-xs" onClick={loadUsers} disabled={actionLoading}>
+          Reload Target Victims
         </button>
       </div>
 
-      <div className="match-summary">
+      <div className="match-summary bg-slate-900/60 border border-slate-800 p-5 rounded-2xl flex items-center justify-between mt-4">
         <div>
-          <p className="muted">How it works</p>
-          <p className="summary-copy">
-            The frontend calls <code>GET /api/match/users</code> to load cards, then sends
-            <code>POST /api/match/like/:id</code> or <code>POST /api/match/dislike/:id</code>.
-            If the backend returns a mutual match, you can open chat right away.
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">AURA MONITOR & BILLING TERMS</p>
+          <p className="text-xs text-slate-450 leading-relaxed mt-1 font-light max-w-2xl">
+            Our proprietary algorithm queries <code>GET /api/match/users</code> to ingest high-value candidates. 
+            Submitting <code>POST /api/match/like/:id</code> initiates binding emotional interest. Mutual alignment 
+            allows you to unlock the live chat terminal (Standard messaging rates and aura fees apply).
           </p>
         </div>
-        <div className="summary-pill">
-          <span>{users.length}</span>
-          <small>cards left</small>
+        <div className="summary-pill bg-white/5 border border-white/10 px-5 py-3.5 rounded-2xl text-center shrink-0 flex flex-col items-center justify-center">
+          <span className="text-2xl font-black text-rose-400 animate-pulse">{users.length}</span>
+          <small className="text-[10px] uppercase font-bold tracking-widest text-slate-500 mt-1">HOSTAGES LEFT</small>
         </div>
       </div>
 
@@ -136,9 +156,15 @@ const Match = ({ onOpenChat }) => {
         </div>
       ) : (
         !status && (
-          <div className="empty-chat">
-            <p className="muted">No users left to review.</p>
-            <p className="muted">Refresh later or check chat after a match.</p>
+          <div className="empty-chat flex flex-col items-center justify-center p-12 text-center bg-rose-950/20 border border-rose-500/10 rounded-3xl mt-6 gap-3">
+            <span className="text-4xl animate-bounce">🤡</span>
+            <h3 className="text-xl font-bold text-white tracking-wide">NO SUSCEPTIBLE HOSTAGES REMAINING</h3>
+            <p className="text-slate-450 text-xs font-light max-w-sm leading-relaxed">
+              You have exhausted the patience of every single user in our database. Perhaps you should try buying some Rizz Credits to bypass their high standards?
+            </p>
+            <button onClick={loadUsers} className="px-6 py-2.5 bg-gradient-to-r from-rose-500 to-pink-600 text-white font-extrabold rounded-full text-xs shadow-lg hover:scale-105 transition-all mt-2">
+              RETRY DESPERATELY
+            </button>
           </div>
         )
       )}

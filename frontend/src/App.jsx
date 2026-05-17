@@ -14,6 +14,8 @@ import Profile from "./pages/Profile.jsx";
 import Match from "./pages/Match.jsx";
 import Matches from "./pages/Matches.jsx";
 import Chat from "./pages/Chat.jsx";
+import CursorTrail from "./chaos/CursorTrail.jsx";
+import ChaosOverlay from "./chaos/ChaosOverlay.jsx";
 import "./App.css";
 
 const AuthGate = () => {
@@ -96,6 +98,8 @@ const AuthGate = () => {
 function App() {
   return (
     <AuthProvider>
+      <CursorTrail />
+      <ChaosOverlay />
       <AuthGate />
     </AuthProvider>
   );
