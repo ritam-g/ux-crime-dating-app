@@ -3,10 +3,11 @@ import { executeFallbackReply } from "../services/chatFallback.service.js";
 
 /**
  * @file aiReplyScheduler.js
- * @description Manages active timeouts for scheduling and canceling AI replies.
+ * @description Manages active conversation timeouts for scheduling and canceling AI replies.
+ * Ensures strict single-timer guarantee per conversation room.
  */
 
-const pendingTimers = new Map(); // key = `${conversationId}:${receiverId}` -> Timeout
+const pendingTimers = new Map(); // key = conversationId -> Timeout
 
 /**
  * Schedules an AI response if the receiver remains inactive.
@@ -17,33 +18,30 @@ const pendingTimers = new Map(); // key = `${conversationId}:${receiverId}` -> T
  * @param {string} params.latestContent
  */
 export const scheduleAIReply = ({ conversationId, senderId, receiverId, latestContent }) => {
-  const key = `${conversationId}:${receiverId}`;
-
-  // Clean up any pre-existing timer for this specific target
-  cancelAIReply(conversationId, receiverId);
+  // Clear any existing active schedule for this conversation room to avoid duplicates/races
+  cancelAIReply(conversationId);
 
   const timeoutId = setTimeout(async () => {
     try {
-      pendingTimers.delete(key);
+      pendingTimers.delete(conversationId);
       await executeFallbackReply({ conversationId, senderId, receiverId, latestContent });
     } catch (error) {
       console.error(`[AI Scheduler] Failed executing fallback reply: ${error.message}`);
     }
   }, aiConfig.aiReplyDelayMs);
 
-  pendingTimers.set(key, timeoutId);
+  pendingTimers.set(conversationId, timeoutId);
 };
 
 /**
- * Cancels a pending AI timer for a given conversation and user.
+ * Cancels a pending AI timer for a given conversation.
  * @param {string} conversationId
- * @param {string} receiverId
+ * @param {string} [receiverId] - Optional receiverId to match legacy signature
  */
 export const cancelAIReply = (conversationId, receiverId) => {
-  const key = `${conversationId}:${receiverId}`;
-  if (pendingTimers.has(key)) {
-    clearTimeout(pendingTimers.get(key));
-    pendingTimers.delete(key);
+  if (pendingTimers.has(conversationId)) {
+    clearTimeout(pendingTimers.get(conversationId));
+    pendingTimers.delete(conversationId);
   }
 };
 

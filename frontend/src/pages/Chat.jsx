@@ -274,6 +274,7 @@ const Chat = ({ activeMatch, onPickMatch, onGoMatch }) => {
       if (randomMeme) {
         setActiveMemeVideo(randomMeme);
       }
+      setTypingUser(selectedMatch ? otherUserName(selectedMatch) : "Victim");
     }, 5000);
 
     const payload = {

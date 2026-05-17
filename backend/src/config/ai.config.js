@@ -8,5 +8,5 @@ dotenv.config();
 export default {
   mistralApiKey: process.env.MISTRAL_API_KEY || process.env.mistralApiKey,
   mistralModel: process.env.MISTRAL_MODEL || "mistral-medium",
-  aiReplyDelayMs: parseInt(process.env.AI_REPLY_DELAY_MS, 10) || 20000,
+  aiReplyDelayMs: parseInt(process.env.AI_REPLY_DELAY_MS, 10) || 8500,
 };
