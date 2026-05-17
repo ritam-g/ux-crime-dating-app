@@ -17,7 +17,7 @@ export const setAuthCookie = (res, token) => {
   return res.cookie(config.jwtCookieName, token, {
     httpOnly: true,
     secure: config.isProduction,
-    sameSite: "lax",
+    sameSite: config.isProduction ? "none" : "lax",
     maxAge: config.jwtCookieMaxAge,
     path: "/",
   });
@@ -33,7 +33,7 @@ export const clearAuthCookie = (res) => {
   return res.clearCookie(config.jwtCookieName, {
     httpOnly: true,
     secure: config.isProduction,
-    sameSite: "lax",
+    sameSite: config.isProduction ? "none" : "lax",
     path: "/",
   });
 };

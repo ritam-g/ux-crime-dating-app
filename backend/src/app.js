@@ -8,6 +8,8 @@
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import helmet from "helmet";
+import compression from "compression";
 import authRoutes from "./routes/authRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
 import matchRoutes from "./routes/matchRoutes.js";
@@ -15,10 +17,28 @@ import userRoutes from "./routes/userRoutes.js";
 
 const app = express();
 
-// Cookies need CORS credentials support so the browser can send them back.
-app.use(cors({ origin: true, credentials: true }));
+// Trust proxy for secure cookies in production behind Render/Railway
+app.set("trust proxy", 1);
+
+// Production-safe Security Headers
+app.use(helmet());
+
+// Asset compression
+app.use(compression());
+
+// Strictly typed CORS
+app.use(
+  cors({
+    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    credentials: true,
+  })
+);
+
 app.use(cookieParser());
-app.use(express.json());
+
+// Request size limits
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 /**
  * @description Returns a simple health response for deployment checks.
