@@ -1,23 +1,33 @@
+/**
+ * @file app.js
+ * @description Builds the Express application and mounts middleware and routes.
+ *
+ * This file stays free of database startup and server listening logic so the
+ * app can be reused in tests and in the HTTP server entrypoint.
+ */
 import express from "express";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import authRoutes from "./routes/authRoutes.js";
+import chatRoutes from "./routes/chatRoutes.js";
+import matchRoutes from "./routes/matchRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 
-/**
- * This file only creates and configures the Express application.
- * Keeping startup logic elsewhere makes the app easier to test and reuse.
- */
 const app = express();
 
-// Basic middleware that every API needs.
-app.use(cors());
+// Cookies need CORS credentials support so the browser can send them back.
+app.use(cors({ origin: true, credentials: true }));
+app.use(cookieParser());
 app.use(express.json());
 
 /**
- * Health check is useful for quick deployment checks and local debugging.
+ * @description Returns a simple health response for deployment checks.
+ * @returns JSON health status.
+ * @route GET /api/health
+ * @access Public
  */
 app.get("/api/health", (req, res) => {
-  res.status(200).json({
+  return res.status(200).json({
     status: "ok",
     message: "Love.exe Not Responding backend is running",
   });
@@ -25,20 +35,28 @@ app.get("/api/health", (req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
+app.use("/api/match", matchRoutes);
+app.use("/api/chat", chatRoutes);
 
 /**
- * Simple 404 handler keeps unknown routes predictable.
+ * @description Returns a consistent response for unknown routes.
+ * @returns JSON 404 response.
+ * @route N/A
+ * @access Public
  */
 app.use((req, res) => {
-  res.status(404).json({ message: "Route not found" });
+  return res.status(404).json({ message: "Route not found" });
 });
 
 /**
- * Central error handler catches unexpected failures in one place.
+ * @description Handles unexpected server errors in one place.
+ * @returns JSON 500 response.
+ * @route N/A
+ * @access Public
  */
 app.use((error, req, res, next) => {
   console.error(error);
-  res.status(500).json({ message: "Internal server error" });
+  return res.status(500).json({ message: "Internal server error" });
 });
 
 export default app;

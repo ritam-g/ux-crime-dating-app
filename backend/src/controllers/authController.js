@@ -1,11 +1,21 @@
+/**
+ * @file authController.js
+ * @description Handles registration, login, and logout for cookie-based JWT auth.
+ *
+ * This controller hashes passwords, generates JWTs, stores them in HTTP-only
+ * cookies, and returns only safe user data to the client.
+ */
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { createUser, findUserByEmail } from "../dao/user.dao.js";
 import config from "../config/config.js";
+import { createUser, findUserByEmail } from "../dao/user.dao.js";
+import { clearAuthCookie, setAuthCookie } from "../utils/authCookies.js";
 
 /**
- * Creates a safe user object for API responses.
- * We remove password here so controllers never leak sensitive data by accident.
+ * @description Creates a safe user object for API responses.
+ * @returns A user object without sensitive fields.
+ * @route N/A
+ * @access Private
  */
 const buildSafeUser = (user) => ({
   id: user._id,
@@ -20,8 +30,22 @@ const buildSafeUser = (user) => ({
 });
 
 /**
- * Registers a new user.
- * The password is hashed before the record is saved so plain text never reaches MongoDB.
+ * @description Generates a signed JWT for the user.
+ * @returns A JWT string.
+ * @route N/A
+ * @access Private
+ */
+const createAuthToken = (user) => {
+  return jwt.sign({ id: user._id, email: user.email }, config.jwtSecret, {
+    expiresIn: config.jwtExpiresIn,
+  });
+};
+
+/**
+ * @description Registers a user, stores the JWT cookie, and returns safe user data.
+ * @returns JSON response with message and user.
+ * @route POST /api/auth/register
+ * @access Public
  */
 export const registerUser = async (req, res) => {
   try {
@@ -47,13 +71,11 @@ export const registerUser = async (req, res) => {
       interests,
     });
 
-    const token = jwt.sign({ id: user._id, email: user.email }, config.jwtSecret, {
-      expiresIn: "7d",
-    });
+    const token = createAuthToken(user);
+    setAuthCookie(res, token);
 
     return res.status(201).json({
       message: "User registered successfully",
-      token,
       user: buildSafeUser(user),
     });
   } catch (error) {
@@ -62,8 +84,10 @@ export const registerUser = async (req, res) => {
 };
 
 /**
- * Logs a user in after checking their email and password.
- * The DAO fetches the password hash only for this route.
+ * @description Logs a user in, stores the JWT cookie, and returns safe user data.
+ * @returns JSON response with message and user.
+ * @route POST /api/auth/login
+ * @access Public
  */
 export const loginUser = async (req, res) => {
   try {
@@ -83,16 +107,32 @@ export const loginUser = async (req, res) => {
       return res.status(401).json({ message: "Invalid email or password" });
     }
 
-    const token = jwt.sign({ id: user._id, email: user.email }, config.jwtSecret, {
-      expiresIn: "7d",
-    });
+    const token = createAuthToken(user);
+    setAuthCookie(res, token);
 
     return res.status(200).json({
       message: "Login successful",
-      token,
       user: buildSafeUser(user),
     });
   } catch (error) {
     return res.status(500).json({ message: "Login failed", error: error.message });
+  }
+};
+
+/**
+ * @description Clears the auth cookie so the user is logged out.
+ * @returns JSON response confirming logout.
+ * @route POST /api/auth/logout
+ * @access Private
+ */
+export const logoutUser = async (req, res) => {
+  try {
+    clearAuthCookie(res);
+
+    return res.status(200).json({
+      message: "Logout successful",
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Logout failed", error: error.message });
   }
 };
