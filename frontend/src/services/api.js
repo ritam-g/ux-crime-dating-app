@@ -70,4 +70,23 @@ export const sendChatMessage = async (payload) => {
   return response.data;
 };
 
+/**
+ * Returns the peer profile involved in a conversation, ensuring we don't show the logged-in user.
+ * 
+ * @param {Object} conversation 
+ * @param {string} currentUserId 
+ * @returns {Object|null}
+ */
+export const getOtherParticipant = (conversation, currentUserId) => {
+  if (!conversation || !currentUserId) return null;
+
+  const initiatorId = conversation.initiator?._id || conversation.initiator?.id || conversation.initiator;
+  const targetId = conversation.targetUser?._id || conversation.targetUser?.id || conversation.targetUser;
+
+  const initiatorStr = String(initiatorId);
+  const currentUserStr = String(currentUserId);
+
+  return initiatorStr === currentUserStr ? conversation.targetUser : conversation.initiator;
+};
+
 export default api;

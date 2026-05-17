@@ -11,6 +11,7 @@ import MessageBubble from "../components/MessageBubble.jsx";
 import {
   getChatHistory,
   getMyMatches,
+  getOtherParticipant,
   sendChatMessage,
 } from "../services/api.js";
 import socket, {
@@ -36,6 +37,8 @@ const Chat = ({ activeMatch, onPickMatch, onGoMatch }) => {
   const [content, setContent] = useState("");
   const [status, setStatus] = useState("Select a match to start chatting.");
   const [typingUser, setTypingUser] = useState(null);
+  const [isRoomReady, setIsRoomReady] = useState(false);
+  const [roomError, setRoomError] = useState("");
   const bottomRef = useRef(null);
   const seenMessageIds = useRef(new Set());
 
@@ -54,11 +57,7 @@ const Chat = ({ activeMatch, onPickMatch, onGoMatch }) => {
 
   const otherUserName = (match) => {
     if (!match || !user) return "Chat";
-
-    const currentUserId = user._id || user.id;
-    const initiatorId = match.initiator?._id || match.initiator?.id;
-    const other = String(initiatorId) === String(currentUserId) ? match.targetUser : match.initiator;
-
+    const other = getOtherParticipant(match, user._id || user.id);
     return other?.name || "Match";
   };
 
@@ -73,15 +72,22 @@ const Chat = ({ activeMatch, onPickMatch, onGoMatch }) => {
     }
   };
 
+  const previousConversationId = useRef(null);
+
   const loadHistory = async (matchId) => {
     if (!matchId) return;
 
     setStatus("Loading chat history...");
-    const response = await getChatHistory(matchId);
-    const history = response.messages || [];
-    seenMessageIds.current = new Set(history.map((message) => message._id));
-    setMessages(history);
-    setStatus("");
+    try {
+      const response = await getChatHistory(matchId);
+      const history = response.messages || [];
+      seenMessageIds.current = new Set(history.map((message) => message._id || message.id));
+      setMessages(history);
+      setStatus("");
+    } catch (err) {
+      console.error("Failed to load chat history:", err);
+      setStatus("Failed to load history.");
+    }
   };
 
   useEffect(() => {
@@ -91,12 +97,58 @@ const Chat = ({ activeMatch, onPickMatch, onGoMatch }) => {
   useEffect(() => {
     if (!selectedMatchId) return;
 
-    loadHistory(selectedMatchId);
-    connectSocket();
-    joinRoom(selectedMatchId);
-  }, [selectedMatchId]);
+    // Reset room state for new conversation
+    setIsRoomReady(false);
+    setRoomError("");
 
-  useEffect(() => {
+    // Load history asynchronously without blocking
+    loadHistory(selectedMatchId);
+
+    // Establish connection
+    const currentSocket = connectSocket();
+
+    // Emit leave_room for the previous room if changing rooms
+    if (previousConversationId.current && previousConversationId.current !== selectedMatchId) {
+      socket.emit("leave_room", { conversationId: previousConversationId.current });
+    }
+    previousConversationId.current = selectedMatchId;
+
+    const attemptJoinRoom = () => {
+      if (socket.connected) {
+        socket.emit("join_room", { conversationId: selectedMatchId });
+      }
+    };
+
+    // If socket is already connected, emit join immediately
+    attemptJoinRoom();
+
+    // Listeners for Room Connection Lifecycle
+    const handleConnect = () => {
+      setRoomError("");
+      attemptJoinRoom();
+    };
+
+    const handleDisconnect = () => {
+      setIsRoomReady(false);
+    };
+
+    const handleReconnect = () => {
+      attemptJoinRoom();
+    };
+
+    const handleJoinedRoom = (data) => {
+      if (String(data.conversationId) === String(selectedMatchId)) {
+        setIsRoomReady(true);
+        setRoomError("");
+      }
+    };
+
+    const handleJoinError = (data) => {
+      setIsRoomReady(false);
+      setRoomError(data.message || "Access denied.");
+    };
+
+    // Message receiver with strict deduplication
     const handleMessage = (incomingMessage) => {
       const incomingId = incomingMessage._id || incomingMessage.id;
       const incomingConvId = incomingMessage.conversationId;
@@ -106,14 +158,20 @@ const Chat = ({ activeMatch, onPickMatch, onGoMatch }) => {
       }
 
       if (incomingId && seenMessageIds.current.has(incomingId)) {
-        return;
+        return; // Deduplicate!
       }
 
       if (incomingId) {
         seenMessageIds.current.add(incomingId);
       }
 
-      setMessages((current) => [...current, incomingMessage]);
+      setMessages((current) => {
+        // Double check to prevent race conditions during history loading
+        if (incomingId && current.some((m) => (m._id || m.id) === incomingId)) {
+          return current;
+        }
+        return [...current, incomingMessage];
+      });
     };
 
     const handleTyping = (data) => {
@@ -125,11 +183,23 @@ const Chat = ({ activeMatch, onPickMatch, onGoMatch }) => {
       }
     };
 
-    onReceiveMessage(handleMessage);
+    // Attach listeners
+    socket.on("connect", handleConnect);
+    socket.on("disconnect", handleDisconnect);
+    socket.on("reconnect", handleReconnect);
+    socket.on("joined_room", handleJoinedRoom);
+    socket.on("join_error", handleJoinError);
+    socket.on("receive_message", handleMessage);
     socket.on("typing", handleTyping);
 
+    // Cleanup: unsubscribe from old listeners when conversation changes or unmounts
     return () => {
-      offReceiveMessage(handleMessage);
+      socket.off("connect", handleConnect);
+      socket.off("disconnect", handleDisconnect);
+      socket.off("reconnect", handleReconnect);
+      socket.off("joined_room", handleJoinedRoom);
+      socket.off("join_error", handleJoinError);
+      socket.off("receive_message", handleMessage);
       socket.off("typing", handleTyping);
     };
   }, [selectedMatchId, selectedMatch, user]);
@@ -162,11 +232,19 @@ const Chat = ({ activeMatch, onPickMatch, onGoMatch }) => {
       content: content.trim(),
     });
 
-    if (response.chatMessage?._id) {
-      seenMessageIds.current.add(response.chatMessage._id);
+    const chatMsg = response.chatMessage;
+    if (chatMsg) {
+      const msgId = chatMsg._id || chatMsg.id;
+      if (msgId) {
+        seenMessageIds.current.add(msgId);
+      }
+      setMessages((current) => {
+        if (msgId && current.some((m) => (m._id || m.id) === msgId)) {
+          return current;
+        }
+        return [...current, chatMsg];
+      });
     }
-
-    setMessages((current) => [...current, response.chatMessage]);
     setContent("");
   };
 
@@ -218,7 +296,7 @@ const Chat = ({ activeMatch, onPickMatch, onGoMatch }) => {
         {selectedMatchId ? (
           <>
             <div className="chat-history">
-              {status ? <p className="muted">{status}</p> : null}
+              {status || roomError ? <p className="muted">{status || roomError}</p> : null}
               {messages.length ? (
                 messages.map((message) => (
                   <MessageBubble
@@ -248,12 +326,12 @@ const Chat = ({ activeMatch, onPickMatch, onGoMatch }) => {
 
             <form className="chat-form" onSubmit={handleSend}>
               <input
-                placeholder="Type a message..."
+                placeholder={isRoomReady ? "Type a message..." : "Connecting to chat room..."}
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                disabled={!selectedMatchId}
+                disabled={!isRoomReady}
               />
-              <button className="btn primary" type="submit" disabled={!selectedMatchId}>
+              <button className="btn primary" type="submit" disabled={!isRoomReady}>
                 Send
               </button>
             </form>

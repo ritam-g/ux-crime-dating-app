@@ -1,5 +1,5 @@
 import { createMessage, getMessagesByConversationId } from "../dao/message.dao.js";
-import Conversation from "../models/Conversation.js";
+import { findConversationByIdAndParticipant, findConversationById } from "../dao/conversation.dao.js";
 import { getIO } from "../socket/socketServer.js";
 import { cancelAIReply, scheduleAIReply } from "../jobs/aiReplyScheduler.js";
 
@@ -18,10 +18,7 @@ export const getChatHistory = async (req, res) => {
   try {
     const { conversationId } = req.params;
 
-    const conversation = await Conversation.findOne({
-      conversationId,
-      participants: req.user.id,
-    });
+    const conversation = await findConversationByIdAndParticipant(conversationId, req.user.id);
     if (!conversation) {
       return res.status(403).json({ message: "You are not allowed to view this chat" });
     }
@@ -51,10 +48,7 @@ export const sendMessage = async (req, res) => {
       return res.status(400).json({ message: "conversationId and content are required" });
     }
 
-    const conversation = await Conversation.findOne({
-      conversationId,
-      participants: req.user.id,
-    });
+    const conversation = await findConversationByIdAndParticipant(conversationId, req.user.id);
     if (!conversation) {
       return res.status(403).json({ message: "You are not allowed to send messages in this chat" });
     }
@@ -106,5 +100,5 @@ export const sendMessage = async (req, res) => {
  */
 export const verifyMatchedConversation = async (userAId, userBId) => {
   const conversationId = [userAId.toString(), userBId.toString()].sort().join("_");
-  return Conversation.findOne({ conversationId });
+  return findConversationById(conversationId);
 };

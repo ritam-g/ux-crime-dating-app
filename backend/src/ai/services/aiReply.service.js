@@ -1,4 +1,4 @@
-import User from "../../models/User.js";
+import { findUserById } from "../../dao/user.dao.js";
 import { getMessagesByConversationId } from "../../dao/message.dao.js";
 import { getMistralChatModel } from "../chains/chat.chain.js";
 import { SYSTEM_PROMPT_TEMPLATE } from "../prompts/personality.prompt.js";
@@ -19,9 +19,9 @@ import { formatHistory } from "../utils/promptBuilder.js";
  * @returns {Promise<string>} Cleaned AI text response.
  */
 export const generateAIReply = async ({ conversationId, senderId, receiverId, latestContent }) => {
-  // Load profiles
-  const receiver = await User.findById(receiverId);
-  const sender = await User.findById(senderId);
+  // Load profiles using DAO
+  const receiver = await findUserById(receiverId);
+  const sender = await findUserById(senderId);
 
   if (!receiver || !sender) {
     throw new Error("Sender or Receiver profile not found");

@@ -31,6 +31,10 @@ export const joinRoom = (conversationId) => {
   socket.emit("join_room", { conversationId });
 };
 
+export const leaveRoom = (conversationId) => {
+  socket.emit("leave_room", { conversationId });
+};
+
 export const sendMessage = (payload) => {
   socket.emit("send_message", payload);
 };

@@ -1,7 +1,7 @@
 import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
 import config from "../config/config.js";
-import Conversation from "../models/Conversation.js";
+import { findConversationByIdAndParticipant } from "../dao/conversation.dao.js";
 import { createMessage } from "../dao/message.dao.js";
 import { addOnlineUser, removeOnlineUser } from "./onlineUsers.js";
 import { cancelAIReply, scheduleAIReply } from "../jobs/aiReplyScheduler.js";
@@ -74,10 +74,7 @@ export const initializeSocket = (server) => {
       }
 
       // Secure: ensure the user is an active participant in this conversation
-      const conversation = await Conversation.findOne({
-        conversationId,
-        participants: socket.user.id,
-      });
+      const conversation = await findConversationByIdAndParticipant(conversationId, socket.user.id);
 
       if (!conversation) {
         socket.emit("join_error", {
@@ -88,6 +85,14 @@ export const initializeSocket = (server) => {
 
       socket.join(conversationId);
       socket.emit("joined_room", { conversationId });
+    });
+
+    socket.on("leave_room", (payload = {}) => {
+      const { conversationId } = payload;
+      if (conversationId) {
+        socket.leave(conversationId);
+        socket.emit("left_room", { conversationId });
+      }
     });
 
     /**
@@ -108,10 +113,7 @@ export const initializeSocket = (server) => {
         const senderId = socket.user.id;
 
         // Secure: Verify conversation membership
-        const conversation = await Conversation.findOne({
-          conversationId,
-          participants: senderId,
-        });
+        const conversation = await findConversationByIdAndParticipant(conversationId, senderId);
 
         if (!conversation) {
           socket.emit("message_error", {

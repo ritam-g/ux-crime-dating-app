@@ -6,7 +6,7 @@
  * match and jump straight into the conversation view.
  */
 import { useEffect, useState } from "react";
-import { getMyMatches } from "../services/api.js";
+import { getMyMatches, getOtherParticipant } from "../services/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
 
 /**
@@ -37,10 +37,7 @@ const Matches = ({ onOpenChat }) => {
   }, []);
 
   const getOtherUser = (match) => {
-    const initiatorId = match.initiator?._id || match.initiator?.id;
-    const targetId = match.targetUser?._id || match.targetUser?.id;
-    const currentUserId = user?.id;
-    return initiatorId === currentUserId ? match.targetUser : match.initiator;
+    return getOtherParticipant(match, user?._id || user?.id);
   };
 
   return (

@@ -51,9 +51,7 @@ export const getUsersForMatching = async (req, res) => {
  * @route POST /api/match/like/:targetUserId
  * @access Private
  */
-import Conversation from "../models/Conversation.js";
-
-// Keep rest of controller imports and then likeUser:
+import { upsertConversation, getUserConversations } from "../dao/conversation.dao.js";
 
 export const likeUser = async (req, res) => {
   try {
@@ -74,19 +72,8 @@ export const likeUser = async (req, res) => {
     });
 
     // Deterministic conversation ID sorting user ids
-    const conversationId = [req.user.id, targetUserId].sort().join("_");
-
-    // Upsert the conversation document
-    await Conversation.findOneAndUpdate(
-      { conversationId },
-      {
-        $setOnInsert: {
-          conversationId,
-          participants: [req.user.id, targetUserId],
-        },
-      },
-      { upsert: true, new: true }
-    );
+    const conversation = await upsertConversation(req.user.id, targetUserId);
+    const conversationId = conversation.conversationId;
 
     return res.status(200).json({
       isMatched: false,
@@ -150,9 +137,7 @@ export const dislikeUser = async (req, res) => {
  */
 export const getMyMatchesController = async (req, res) => {
   try {
-    const conversations = await Conversation.find({
-      participants: req.user.id,
-    }).populate("participants", "name email age gender bio interests");
+    const conversations = await getUserConversations(req.user.id);
 
     // Format conversations seamlessly to look like matches for frontend backward compatibility
     const matches = conversations.map((conv) => {
