@@ -1,400 +1,166 @@
-Here is your **proper, clean, production-style `backend-plan.md` file** with DAO architecture included. You can directly copy-paste this into your project.
+# 💔 Love.exe Not Responding — Full-Stack Verification & Execution Plan (DAO Architecture)
+
+This document serves as the **Single Source of Truth** for the application architecture, system health, and development progress. Every phase has been validated by scanning the actual production files in both the frontend and backend.
 
 ---
 
-```md
-# 💔 Love.exe Not Responding — Backend Execution Plan (DAO Architecture)
+## 🧠 SYSTEM ARCHITECTURE OVERVIEW
 
-This document defines the **step-by-step backend build order** using a **clean DAO-based architecture** for scalable and production-level code structure.
-
----
-
-# 🧠 ARCHITECTURE OVERVIEW
-
-We follow strict separation of concerns:
+The application utilizes a decoupled, modern MERN stack featuring a **Data Access Object (DAO)** layer to isolate database transactions from controller logic, and a secure **Socket.io** integration for real-time capabilities.
 
 ```
-
-Routes → Controllers → DAO → Models → Database
-
-````
-
-### Why DAO?
-DAO (Data Access Object) layer handles all database operations separately, making code:
-- Clean
-- Scalable
-- Easy to debug
-- Production-ready
-
----
-
-# 🚀 PHASE 1 — PROJECT SETUP
-
-## Step 1: Initialize backend
-```bash
-npm init -y
-````
-
-### Install dependencies:
-
-* express
-* mongoose
-* dotenv
-* cors
-* bcryptjs
-* jsonwebtoken
-* socket.io
-
----
-
-## Step 2: Create server
-
-Create:
-
-```
-server.js
-```
-
-Setup:
-
-* Express app
-* JSON middleware
-* CORS enabled
-* Basic route:
-
-```
-GET /api/health
+React Frontend Layer (App, Chat, Matches, AuthContext)
+                 │
+                 ▼  (Axios with HTTP-Only Cookies)
+Express Backend Controller Layer (authController, chatController, matchController, userController)
+                 │
+                 ▼
+Data Access Object (DAO) Layer (user.dao.js, match.dao.js, message.dao.js)
+                 │
+                 ▼
+Mongoose Model Layer (User, Match, Message, Conversation)
+                 │
+                 ▼
+MongoDB Database Instance
 ```
 
 ---
 
-## Step 3: Folder Structure
+## 🚨 SYSTEM HEALTH SUMMARY & VERIFICATION
 
-```
-backend/
-│
-├── db/
-│   └── connectDB.js
-│
-├── dao/
-│   ├── user.dao.js
-│   ├── match.dao.js
-│   └── message.dao.js
-│
-├── controllers/
-│   ├── authController.js
-│   ├── userController.js
-│   ├── matchController.js
-│   └── chatController.js
-│
-├── models/
-│   ├── User.js
-│   ├── Match.js
-│   └── Message.js
-│
-├── routes/
-│   ├── authRoutes.js
-│   ├── userRoutes.js
-│   ├── matchRoutes.js
-│   └── chatRoutes.js
-│
-├── middleware/
-│   └── authMiddleware.js
-│
-├── socket/
-│   └── socketServer.js
-│
-├── server.js
-├── .env
-└── backend-plan.md
-```
+| Subsystem / Feature | Real-world Status | Actual Implementation Details |
+| :--- | :---: | :--- |
+| **Login / Register** | ✅ Working | Custom endpoints utilizing Bcryptjs for hashing and secure JWT cookie payload generation. |
+| **JWT Cookie Auth** | ✅ Working | Employs HTTP-only secure cookie delivery mapped through specialized `authMiddleware.js`. |
+| **Match System / Swiping**| ✅ Working | `matchController.js` fetches randomized profiles excluding already interacting users. |
+| **One-Sided Likes Chat** | ✅ Working | A single "like" action instantly generates a deterministic sorted Conversation ID enabling immediate chat capability. |
+| **Socket Rooms** | ✅ Working | Restricts room access dynamically. Joins rooms securely verified using standard DB participant checks. |
+| **Live Messages** | ✅ Working | Delivered instantly via secure `receive_message` socket broadcast channels. |
+| **Chat History** | ✅ Working | History loads seamlessly through `GET /api/chat/:conversationId` utilizing indexes. |
+| **Sidebar Rendering** | ✅ Working | Swapped the receiver mapping check to dynamic mongoose-compliant `_id \|\| id` checks to show partner instead of own name. |
+| **AI Fallback Replies** | ✅ Working | Inactivity triggers Mistral-Medium automatically after `20,000ms` of user inactivity. |
+| **AI Context Memory** | ✅ Working | Modified context assembly to supply the **entire previous chat history** to Mistral for full memory. |
+| **Typing Indicator** | ✅ Working | A highly animated, bouncing dot real-time indicator broadcasts `{ userId, isTyping }` states automatically. |
+| **Reconnection Logic** | ✅ Working | Reconnection hooks built into socket client configurations. |
+| **Message Deduplication**| ✅ Working | In-memory React `seenMessageIds` Set guarantees zero duplicated items render inside the history view. |
 
 ---
 
-# 🗄️ PHASE 2 — DATABASE LAYER
+## ⚠️ CRITICAL BUGS & RESOLVED ANOMALIES
 
-## Step 4: MongoDB Connection
+### 1. The Env Key Casing Mismatch (RESOLVED ✅)
+* **Problem:** Backend `ai.config.js` was parsing `process.env.MISTRAL_API_KEY` while the active environment file defined it as `mistralApiKey=...`. This evaluated to `undefined`, silently failing AI generation inside try-catch blocks.
+* **Resolution:** Modified `ai.config.js` to look for both casing configurations: `process.env.MISTRAL_API_KEY || process.env.mistralApiKey`.
 
-Create:
+### 2. Left Sidebar Displaying the Current User instead of Peer (RESOLVED ✅)
+* **Problem:** Mismatch checks compared strict database `_id` values to string parameters, resulting in users seeing themselves on the left sidebar profile row.
+* **Resolution:** Swapped comparison logic to utilize standard `user._id || user.id` evaluations, ensuring conversational partners render correctly.
 
-```
-db/connectDB.js
-```
+### 3. Mutual Match Hard-Block on Chat Initiation (RESOLVED ✅)
+* **Problem:** App previously restricted chat access until both users swiped "like" on each other.
+* **Resolution:** Migrated routing permissions to a "One-Sided Like" chat initiation model. A like immediately upserts a `Conversation` model, granting instant room entry.
 
-Responsibilities:
-
-* Connect MongoDB using Mongoose
-* Use environment variables
-* Handle connection errors
-
----
-
-# 👤 PHASE 3 — AUTH SYSTEM
-
-## Step 5: User Model
-
-Fields:
-
-* name
-* email
-* password (hashed)
-* age
-* gender
-* bio
-* interests
+### 4. AI Prompt Identity Leakage (RESOLVED ✅)
+* **Problem:** Fallback responses occasionally contained labels like `"Jane:"` or `"You:"` prefixing sentences, or sounded assistant-like.
+* **Resolution:** Replaced personality prompt templates with strict adaptive response layouts, outputting exclusively clean raw message text and stripping prefix markers via regex post-generation.
 
 ---
 
-## Step 6: DAO Layer (User)
-
-Create:
-
-```
-dao/user.dao.js
-```
-
-Functions:
-
-* createUser()
-* findUserByEmail()
-* findUserById()
-* updateUser()
+## 🗂️ STEP-BY-STEP PHASE DOCKING ANALYSIS
 
 ---
 
-## Step 7: Auth Controller
-
-Create:
-
-```
-controllers/authController.js
-```
-
-Logic:
-
-* register user (use DAO)
-* login user (use DAO)
-* bcrypt password hashing
-* JWT token generation
+### 🚀 PHASE 1 — PROJECT SETUP
+* **Current Status:** ✅ Fully Working
+* **Actual Working Flow:** Environment initialized, dependencies installed (`express`, `mongoose`, `cors`, `bcryptjs`, `jsonwebtoken`, `socket.io`, `@langchain/mistralai`). Health check route active at `GET /api/health`.
+* **Broken Points:** None.
+* **Missing Logic:** None.
+* **Backend Dependencies:** Node.js, Express, Cors, Dotenv.
+* **Frontend Dependencies:** Axios, React 18, Vite.
+* **Socket Dependencies:** Socket.io package.
+* **Recommended Fix:** Keep monitored.
 
 ---
 
-## Step 8: Auth Routes
-
-Create:
-
-```
-routes/authRoutes.js
-```
-
-Routes:
-
-* POST /api/auth/register
-* POST /api/auth/login
+### 🗄️ PHASE 2 — DATABASE LAYER
+* **Current Status:** ✅ Fully Working
+* **Actual Working Flow:** Mongoose connects via `db/connectDB.js`. Centralized config loaded under `backend/src/config/config.js` using URI configurations in `.env`.
+* **Broken Points:** None.
+* **Missing Logic:** None.
+* **Backend Dependencies:** Mongoose, MongoDB.
+* **Frontend Dependencies:** None.
+* **Socket Dependencies:** None.
+* **Recommended Fix:** Ensure MongoDB index coverage for high-volume collections.
 
 ---
 
-## Step 9: Auth Middleware
-
-Create:
-
-```
-middleware/authMiddleware.js
-```
-
-Responsibilities:
-
-* Verify JWT token
-* Protect private routes
+### 👤 PHASE 3 — AUTH SYSTEM & JWT COOKIES
+* **Current Status:** ✅ Fully Working
+* **Actual Working Flow:** Hashed credentials utilizing Bcrypt mapped via `user.dao.js`. Auth controller generates JWT payload and places it inside HTTP-Only secure cookies (`token`). Authenticated routes verified by `authMiddleware.js`.
+* **Broken Points:** None.
+* **Missing Logic:** None.
+* **Backend Dependencies:** `bcryptjs`, `jsonwebtoken`, `cookie-parser`.
+* **Frontend Dependencies:** Axios setting `withCredentials: true`.
+* **Socket Dependencies:** None.
+* **Recommended Fix:** Ensure Cookie secure settings are enabled in production mode.
 
 ---
 
-# 👤 PHASE 4 — USER PROFILE SYSTEM
-
-## Step 10: User Controller
-
-Features:
-
-* Get profile
-* Update profile
-
----
-
-## Step 11: DAO usage
-
-Use:
-
-* user.dao.js for all DB operations
+### 👤 PHASE 4 — USER PROFILE MANAGEMENT
+* **Current Status:** ✅ Fully Working
+* **Actual Working Flow:** Profile creation, rendering, and modification endpoints mapping to MongoDB fields (`name`, `age`, `gender`, `bio`, `interests`) using `userController.js`.
+* **Broken Points:** None.
+* **Missing Logic:** None.
+* **Backend Dependencies:** User Mongoose Model, `user.dao.js`.
+* **Frontend Dependencies:** React Profile Page.
+* **Socket Dependencies:** None.
+* **Recommended Fix:** Add interest validation constraints on update.
 
 ---
 
-## Step 12: Routes
-
-* GET /api/user/profile
-* PUT /api/user/profile
-
----
-
-# 💘 PHASE 5 — MATCHING SYSTEM (CORE LOGIC)
-
-## Step 13: Match Model
-
-Fields:
-
-* userId
-* targetUserId
-* status (like / dislike / match)
+### 💘 PHASE 5 — MATCHING SYSTEM
+* **Current Status:** ✅ Fully Working
+* **Actual Working Flow:** Matches list maps conversations directly to represent "available chat lines". When a user clicks "like", an Express endpoint upserts a deterministic conversation object (`initiator_target` sorted ID), immediately spawning a chat option.
+* **Broken Points:** None.
+* **Missing Logic:** None.
+* **Backend Dependencies:** `Match` & `Conversation` Schemas, `match.dao.js`.
+* **Frontend Dependencies:** `/match` and `/matches` Page views.
+* **Socket Dependencies:** None.
+* **Recommended Fix:** Monitor collection sizes and add a TTL index or pruning script for inactive "dislikes" to avoid document accumulation.
 
 ---
 
-## Step 14: Match DAO
-
-Create:
-
-```
-dao/match.dao.js
-```
-
-Functions:
-
-* getRandomUsers()
-* createMatch()
-* findMatch()
-* updateLikeStatus()
+### 💬 PHASE 6 — REALTIME SOCKET CHAT
+* **Current Status:** ✅ Fully Working
+* **Actual Working Flow:** Express and HTTP-upgrade Handshakes verify clients using the verified HTTP-Only secure cookie parsing middleware. Socket client establishes transport, joins rooms designated by sorted conversation IDs, and emits `"send_message"`.
+* **Broken Points:** None.
+* **Missing Logic:** None.
+* **Backend Dependencies:** Socket.io Server, Cookie parsers.
+* **Frontend Dependencies:** `socket.io-client`.
+* **Socket Dependencies:** `join_room`, `send_message`, `receive_message`.
+* **Recommended Fix:** Implement automated client-side keep-alive pings if scaling to multiple nodes.
 
 ---
 
-## Step 15: Match Controller
-
-Logic:
-
-* Fetch users
-* Handle like/dislike
-* Check mutual match
-* Create match
-
----
-
-## Step 16: Match Routes
-
-* GET /api/match/users
-* POST /api/match/like/:id
-* POST /api/match/dislike/:id
+### 🤖 PHASE 7 — AI CHAT FALLBACK SYSTEM
+* **Current Status:** ✅ Fully Working
+* **Actual Working Flow:** When a user completes sending a message over API or Socket, the backend triggers an active `aiReplyDelayMs` timer (set to `20000ms`). If no human reply occurs within that slot, the orchestrator:
+  1. Emits a socket `"typing"` start indicator state `{ userId: partnerId, isTyping: true }`.
+  2. Queries the DB for the **complete chat history**.
+  3. Feeds context to LangChain's Mistral model using the strict adaptive personified prompt.
+  4. Saves the generated casual reply inside MongoDB and fires `"receive_message"` to the room.
+  5. Automatically turns off the `"typing"` animation state inside both backend logs and frontend UI.
+* **Broken Points:** None.
+* **Missing Logic:** Timers are stored in-memory. A server restart during an inactive timer will drop the scheduled AI response event.
+* **Backend Dependencies:** `@langchain/mistralai`, `langchain`, `aiReplyScheduler.js`.
+* **Frontend Dependencies:** Animated bouncing dot Typing Indicator component and scroll effects.
+* **Socket Dependencies:** `"typing"` event channel.
+* **Recommended Fix:** To ensure 100% persistence in multi-instance clustering, transition the fallback scheduler timers from in-memory maps to a persistent Redis keyspace notification or BullMQ queue system.
 
 ---
 
-# 💬 PHASE 6 — SOCKET CHAT SYSTEM
+## 🏆 TECHNICAL RULES FOR DEVELOPMENT CONTINUITY
 
-## Step 17: Socket Setup
-
-Create:
-
-```
-socket/socketServer.js
-```
-
-Features:
-
-* User join room
-* Private chat per match
-* Real-time messaging
-
----
-
-## Step 18: Message Model
-
-Fields:
-
-* senderId
-* receiverId
-* message
-* timestamp
-
----
-
-## Step 19: Message DAO
-
-Create:
-
-```
-dao/message.dao.js
-```
-
-Functions:
-
-* saveMessage()
-* getChatHistory()
-* getMessagesByRoom()
-
----
-
-## Step 20: Socket Events
-
-* connection
-* join_room
-* send_message
-* receive_message
-
----
-
-# 🤖 PHASE 7 — AI CHAT FALLBACK SYSTEM
-
-## Step 21: AI Logic
-
-If user:
-
-* offline OR
-* inactive OR
-* no response
-
-Trigger AI reply system.
-
----
-
-## Step 22: AI Response
-
-Generate reply like:
-
-* Emotional responses
-* Funny responses
-* Personality-based replies
-
-Example:
-
-> “Sorry I was thinking about you 😌”
-
----
-
-# 🔗 FINAL SYSTEM FLOW
-
-```
-Register → Login → Profile → Match → Socket Chat → AI Chat Fallback
-```
-
----
-
-# 🏆 FINAL RULES
-
-✔ DAO must handle ALL database operations
-✔ Controllers must NOT directly access DB
-✔ Socket chat must be real-time
-✔ AI fallback must activate on inactivity
-✔ System must remain fully functional
-
----
-
-# 💀 PROJECT GOAL
-
-A fully working dating system that:
-
-* Works correctly
-* Supports real-time chat
-* Replaces inactive users with AI
-* Feels chaotic in UX (later frontend phase)
-
----
-
-```
-
----
-
+1. **Strict DAO Compliance:** All future backend additions must go through the Data Access Object layer (`src/dao`). Controllers must never invoke Mongoose models directly.
+2. **Deterministic Room IDs:** Conversation rooms must continue to use sorted participant IDs `[idA, idB].sort().join("_")` to avoid duplicate sockets.
+3. **Internal AI Flagging:** The database stores `isAIMessage: true` for audit logs, but the frontend React UI must **never** expose this flag to the user to keep the illusion of talking to a human perfect.
