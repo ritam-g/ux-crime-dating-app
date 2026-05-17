@@ -1,0 +1,52 @@
+/**
+ * @file index.css
+ * @description Global frontend styles for the Love.exe app.
+ */
+:root {
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #f5efe8;
+  background:
+    radial-gradient(circle at top, rgba(255, 114, 138, 0.24), transparent 35%),
+    linear-gradient(180deg, #170f19 0%, #0f1014 100%);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  --panel: rgba(23, 18, 29, 0.8);
+  --panel-border: rgba(255, 255, 255, 0.08);
+  --text-soft: rgba(245, 239, 232, 0.72);
+  --accent: #ff6b8b;
+  --accent-strong: #ff4d74;
+  --accent-alt: #7dd3fc;
+  --success: #4ade80;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+button {
+  border: 0;
+}
+
+a {
+  color: inherit;
+}
