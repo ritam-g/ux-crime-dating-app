@@ -89,4 +89,13 @@ export const getOtherParticipant = (conversation, currentUserId) => {
   return initiatorStr === currentUserStr ? conversation.targetUser : conversation.initiator;
 };
 
+export const uploadProfileImage = async (formData) => {
+  const response = await api.post("/user/upload-profile-image", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+  return response.data;
+};
+
 export default api;

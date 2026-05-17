@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
+import { uploadProfileImage } from "../services/api.js";
 import { playSound } from "../chaos/ChaosEngine.js";
 
 /**
@@ -9,7 +10,7 @@ import { playSound } from "../chaos/ChaosEngine.js";
  * @access Public
  */
 const Register = ({ onGoLogin }) => {
-  const { register } = useAuth();
+  const { register, refreshUser } = useAuth();
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -21,6 +22,11 @@ const Register = ({ onGoLogin }) => {
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Profile Image states
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState("");
+  const [uploadError, setUploadError] = useState("");
 
   // Runaway button state
   const [escapeCount, setEscapeCount] = useState(0);
@@ -56,6 +62,29 @@ const Register = ({ onGoLogin }) => {
     }
   };
 
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      setUploadError("Only JPG, JPEG, PNG, and WEBP supported!");
+      playSound("sad");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError("Mugshot exceeds 5MB size limit!");
+      playSound("sad");
+      return;
+    }
+
+    setUploadError("");
+    setSelectedFile(file);
+    setPreviewUrl(URL.createObjectURL(file));
+    playSound("pop", 0.35);
+  };
+
   const handleFormChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
     if (!value && !form.name && !form.email && !form.password) {
@@ -83,6 +112,21 @@ const Register = ({ onGoLogin }) => {
           .map((item) => item.trim())
           .filter(Boolean),
       });
+
+      // After successful registration, if there's a profile picture, upload it
+      if (selectedFile) {
+        try {
+          const formData = new FormData();
+          formData.append("profileImage", selectedFile);
+          await uploadProfileImage(formData);
+          await refreshUser();
+          playSound("nyan", 0.08);
+        } catch (uploadErr) {
+          console.error("Profile image upload failed after registration:", uploadErr);
+          // Don't block registration success if image fails, just play sad sound
+          playSound("sad");
+        }
+      }
     } catch (err) {
       setError(err.response?.data?.message || "Registration failed miserably.");
       playSound("error", 0.5);
@@ -100,6 +144,58 @@ const Register = ({ onGoLogin }) => {
       <h1 className="text-3xl font-black text-white italic tracking-wide">Create your profile.</h1>
 
       <form onSubmit={handleSubmit} className="form-grid mt-6">
+        {/* Cursed Profile Mugshot Upload */}
+        <div className="full bg-slate-900/60 border border-slate-800 p-5 rounded-3xl flex flex-col items-center gap-4 relative overflow-hidden mb-2">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/5 rounded-full blur-2xl pointer-events-none" />
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5 w-full justify-center">
+            <span>📸</span> MUGSHOT UPLOADER
+          </h3>
+          
+          <div className="flex flex-col items-center gap-3 w-full">
+            <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-rose-500/30 bg-slate-950 flex items-center justify-center relative group shadow-inner">
+              {previewUrl ? (
+                <img src={previewUrl} alt="Mugshot Preview" className="w-full h-full object-cover" />
+              ) : (
+                <div className="text-4xl animate-bounce">🤡</div>
+              )}
+              
+              <label className="absolute inset-0 bg-slate-950/70 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 cursor-pointer">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                <span className="text-[10px] text-white font-black tracking-widest font-mono">REPLACE FACE</span>
+              </label>
+            </div>
+
+            {selectedFile && (
+              <div className="text-[10px] text-emerald-400 font-mono animate-pulse text-center">
+                📁 READY: {selectedFile.name.substring(0, 20)}...
+              </div>
+            )}
+
+            {uploadError && (
+              <div className="text-[10px] text-rose-500 font-mono text-center font-bold">
+                ❌ {uploadError}
+              </div>
+            )}
+
+            <label className="mt-1">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+              <div className="bg-slate-800 border border-slate-700 text-slate-350 font-bold px-6 py-2 rounded-xl text-xs hover:bg-slate-700 active:scale-95 transition-all text-center cursor-pointer select-none">
+                Select Photo
+              </div>
+            </label>
+          </div>
+        </div>
+
         <label className="flex flex-col gap-2">
           <span className="text-slate-300 font-semibold text-sm">Fake Display Name</span>
           <input

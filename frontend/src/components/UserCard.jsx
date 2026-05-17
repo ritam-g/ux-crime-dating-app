@@ -24,9 +24,19 @@ const UserCard = ({ user, onLike, onDislike, disabled = false }) => {
       <div className="absolute inset-0 bg-gradient-to-r from-rose-500/0 via-rose-500/5 to-rose-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
       {/* Left Column: User details */}
-      <div className="flex-1 min-w-0 z-10">
-        <div className="flex flex-wrap items-center gap-3">
-          <h3 className="text-2xl font-black text-white tracking-wide italic">{user.name}</h3>
+      <div className="flex-1 min-w-0 z-10 flex items-start gap-4">
+        {/* User Mugshot Avatar */}
+        <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-slate-700 bg-slate-950 shrink-0 flex items-center justify-center relative shadow-md">
+          {user.profileImage ? (
+            <img src={user.profileImage} alt={user.name} className="w-full h-full object-cover" />
+          ) : (
+            <span className="text-2xl">🤡</span>
+          )}
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-3">
+            <h3 className="text-2xl font-black text-white tracking-wide italic">{user.name}</h3>
           
           <span className="px-3.5 py-0.5 text-xs font-black rounded-full bg-rose-500/10 text-rose-300 border border-rose-500/20">
             {user.age || "?"} Y/O
@@ -56,6 +66,7 @@ const UserCard = ({ user, onLike, onDislike, disabled = false }) => {
           ))}
         </div>
       </div>
+    </div>
 
       {/* Right Column: Like and Dislike buttons side-by-side with details */}
       <div className="flex flex-row gap-3 items-center shrink-0 z-10">

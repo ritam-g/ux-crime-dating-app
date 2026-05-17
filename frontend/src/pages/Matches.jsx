@@ -71,9 +71,19 @@ const Matches = ({ onOpenChat }) => {
               <div className="absolute -top-6 -right-6 w-12 h-12 bg-rose-500/10 rounded-full blur-xl group-hover:bg-rose-500/20 transition-all" />
 
               <div className="card-header flex justify-between items-start">
-                <div>
-                  <p className="text-[10px] text-rose-450 font-bold uppercase tracking-widest">ALIGNED INTERESTS</p>
-                  <h3 className="text-lg font-black text-white mt-1 italic tracking-wide">{peer?.name || "Target Match"}</h3>
+                <div className="flex items-center gap-3">
+                  {/* Match Thumbnail Avatar */}
+                  <div className="w-12 h-12 rounded-full overflow-hidden border border-slate-700 bg-slate-950 shrink-0 flex items-center justify-center relative shadow-sm">
+                    {peer?.profileImage ? (
+                      <img src={peer.profileImage} alt={peer.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-xl">🤡</span>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-rose-450 font-bold uppercase tracking-widest">ALIGNED INTERESTS</p>
+                    <h3 className="text-lg font-black text-white mt-1 italic tracking-wide">{peer?.name || "Target Match"}</h3>
+                  </div>
                 </div>
                 <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-450 border border-emerald-500/20 rounded-full text-[9px] font-black uppercase tracking-widest animate-pulse">
                   Desperate

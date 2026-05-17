@@ -46,3 +46,25 @@ export const updateUser = async (userId, updateData) => {
     runValidators: true,
   });
 };
+
+/**
+ * Updates only the profile picture URL.
+ */
+export const updateProfileImage = async (userId, imageUrl) => {
+  return User.findByIdAndUpdate(
+    userId,
+    { profileImage: imageUrl },
+    { new: true, runValidators: true }
+  );
+};
+
+/**
+ * Updates user profile details like bio, age, gender, etc.
+ */
+export const updateUserProfile = async (userId, profileData) => {
+  return User.findByIdAndUpdate(
+    userId,
+    profileData,
+    { new: true, runValidators: true }
+  );
+};

@@ -56,6 +56,10 @@ app.use((req, res) => {
  */
 app.use((error, req, res, next) => {
   console.error(error);
+  // Gracefully handle Multer file limitations or fileFilter rejections
+  if (error.message && (error.message.includes("allowed") || error.message.includes("limit") || error.code === "LIMIT_FILE_SIZE")) {
+    return res.status(400).json({ message: error.message });
+  }
   return res.status(500).json({ message: "Internal server error" });
 });
 

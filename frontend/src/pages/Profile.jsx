@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
-import { updateProfile } from "../services/api.js";
+import { updateProfile, uploadProfileImage } from "../services/api.js";
 import { playSound, pick } from "../chaos/ChaosEngine.js";
 
 /**
@@ -26,6 +26,12 @@ const Profile = () => {
   const [auraScore, setAuraScore] = useState(null);
   const [baggageScore, setBaggageScore] = useState(78);
 
+  // Profile Image Upload states
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+
   useEffect(() => {
     if (user) {
       setForm({
@@ -49,6 +55,56 @@ const Profile = () => {
       setAuraScore(newScore);
       playSound("vine", 0.5);
     }, 1500);
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      setUploadError("Only JPG, JPEG, PNG, and WEBP supported!");
+      playSound("sad");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError("Mugshot exceeds 5MB size limit!");
+      playSound("sad");
+      return;
+    }
+
+    setUploadError("");
+    setSelectedFile(file);
+    setPreviewUrl(URL.createObjectURL(file));
+    playSound("pop", 0.35);
+  };
+
+  const handleUpload = async () => {
+    if (!selectedFile) return;
+    setUploading(true);
+    setUploadError("");
+    playSound("error", 0.25);
+
+    try {
+      const formData = new FormData();
+      formData.append("profileImage", selectedFile);
+
+      await uploadProfileImage(formData);
+
+      playSound("nyan", 0.08);
+      await refreshUser();
+      
+      setSelectedFile(null);
+      setPreviewUrl("");
+      setUploading(false);
+      setMessage("⚠️ RETINAL PROFILE PICTURE RE-BIOMETRICIZED SUCCESSFULLY!");
+    } catch (err) {
+      const serverErr = err.response?.data?.message || "Cloud upload failed. Vibe check rejected.";
+      setUploadError(serverErr);
+      playSound("sad");
+      setUploading(false);
+    }
   };
 
   const handleInputChange = (field, value) => {
@@ -98,6 +154,87 @@ const Profile = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
         {/* Left Side: Cursed Interactive Stats Panels */}
         <div className="lg:col-span-1 flex flex-col gap-4">
+          {/* Cursed Profile Mugshot Upload */}
+          <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex flex-col gap-3 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-rose-500/5 rounded-full blur-xl pointer-events-none" />
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+              <span>📸</span> MUGSHOT UPLOADER
+            </h3>
+            
+            <div className="flex flex-col items-center gap-3">
+              {/* Image Preview / Current Photo */}
+              <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-rose-500/30 bg-slate-950 flex items-center justify-center relative group shadow-inner">
+                {previewUrl ? (
+                  <img src={previewUrl} alt="Mugshot Preview" className="w-full h-full object-cover" />
+                ) : user?.profileImage ? (
+                  <img src={user.profileImage} alt="User Mugshot" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="text-4xl animate-bounce">🤡</div>
+                )}
+                
+                <label className="absolute inset-0 bg-slate-950/70 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 cursor-pointer">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="hidden"
+                    disabled={uploading}
+                  />
+                  <span className="text-[10px] text-white font-black tracking-widest font-mono">REPLACE FACE</span>
+                </label>
+              </div>
+
+              {selectedFile && !uploading && (
+                <div className="text-[10px] text-emerald-400 font-mono animate-pulse text-center">
+                  📁 READY: {selectedFile.name.substring(0, 16)}...
+                </div>
+              )}
+
+              {/* Loader with unhinged fake scanning state */}
+              {uploading && (
+                <div className="text-center w-full bg-rose-500/10 p-2.5 rounded-xl border border-rose-500/25 animate-pulse">
+                  <div className="text-xs font-bold text-rose-400">
+                    🚨 FBI FACE SCANNING...
+                  </div>
+                  <div className="text-[9px] text-slate-500 font-mono mt-0.5">
+                    UPLOADING RETINAL BIOMETRICS
+                  </div>
+                </div>
+              )}
+
+              {uploadError && (
+                <div className="text-[10px] text-rose-500 font-mono text-center font-bold">
+                  ❌ {uploadError}
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-2">
+              <label className="flex-1">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="hidden"
+                  disabled={uploading}
+                />
+                <div className="w-full bg-slate-800 border border-slate-700 text-slate-350 font-bold py-2 rounded-xl text-xs hover:bg-slate-700 active:scale-95 transition-all text-center cursor-pointer select-none">
+                  Select File
+                </div>
+              </label>
+
+              {selectedFile && (
+                <button
+                  onClick={handleUpload}
+                  disabled={uploading}
+                  className="flex-1 bg-gradient-to-r from-rose-500 to-pink-600 text-white font-black py-2 rounded-xl text-xs hover:from-rose-600 hover:to-pink-700 active:scale-95 transition-all select-none shadow-md shadow-rose-500/10"
+                >
+                  UPLOAD TO CLOUD
+                </button>
+              )}
+            </div>
+          </div>
+
           {/* Aura Scanner */}
           <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex flex-col gap-3">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">🧠 AURA TRACKING</h3>
