@@ -1,7 +1,3 @@
-Got it — adding a **Socket + AI chat fallback** actually makes your project way more impressive for judging. It turns your app from “fun UX chaos” into a **real-time + intelligent system with cursed UX on top** 😈
-
-Here’s your **updated and clean README.md (ready to paste)**:
-
 ---
 
 # 💔 Love.exe Not Responding
