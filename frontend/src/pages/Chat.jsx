@@ -290,7 +290,8 @@ const Chat = ({ activeMatch, onPickMatch, onGoMatch }) => {
         setActiveMemeVideo(randomMeme);
       }
       setTypingUser(selectedMatch ? otherUserName(selectedMatch) : "Victim");
-    }, 5000);
+    }, 10000);
+
 
     const payload = {
       conversationId: selectedMatchId,

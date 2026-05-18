@@ -31,7 +31,7 @@ export const scheduleAIReply = ({ conversationId, senderId, receiverId, latestCo
   };
   pendingTimers.set(conversationId, state);
 
-  // Wait EXACTLY 10 seconds (10000ms) of full inactivity as required
+  // Wait EXACTLY 10 seconds (via centralized aiConfig) of full inactivity as required
   const timeoutId = setTimeout(async () => {
     try {
       if (state.isCancelled) return;
@@ -46,7 +46,8 @@ export const scheduleAIReply = ({ conversationId, senderId, receiverId, latestCo
         pendingTimers.delete(conversationId);
       }
     }
-  }, 10000);
+  }, aiConfig.aiReplyDelayMs);
+
 
   state.inactivityTimeoutId = timeoutId;
 };
