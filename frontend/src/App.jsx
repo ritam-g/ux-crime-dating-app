@@ -14,8 +14,9 @@ import Profile from "./pages/Profile.jsx";
 import Match from "./pages/Match.jsx";
 import Matches from "./pages/Matches.jsx";
 import Chat from "./pages/Chat.jsx";
-import CursorTrail from "./chaos/CursorTrail.jsx";
 import ChaosOverlay from "./chaos/ChaosOverlay.jsx";
+import RageCursor from "./components/chaos/RageCursor.jsx";
+import CookieConsentMafia from "./components/chaos/CookieConsentMafia.jsx";
 import "./App.css";
 
 const AuthGate = () => {
@@ -119,11 +120,22 @@ const DynamicTitle = () => {
 };
 
 function App() {
+  // Session-gated: show cookie consent once per browser session
+  const [showCookie, setShowCookie] = useState(
+    () => !sessionStorage.getItem("loveexe_cookie_accepted")
+  );
+
+  const handleCookieDismiss = () => {
+    sessionStorage.setItem("loveexe_cookie_accepted", "1");
+    setShowCookie(false);
+  };
+
   return (
     <AuthProvider>
       <DynamicTitle />
-      <CursorTrail />
+      <RageCursor />
       <ChaosOverlay />
+      {showCookie && <CookieConsentMafia onDismiss={handleCookieDismiss} />}
       <AuthGate />
     </AuthProvider>
   );

@@ -1,4 +1,8 @@
 import { playSound } from "../chaos/ChaosEngine.js";
+import { addRage } from "../utils/rageCursorManager.js";
+
+/** Fire rage increment + notify RageCursor badge (no React re-render) */
+const fireRage = () => { addRage(); window.dispatchEvent(new Event("rage:increment")); };
 
 /**
  * @description Shows a candidate user card with extreme visual premium styling, cursed metadata badges and animations.
@@ -73,6 +77,7 @@ const UserCard = ({ user, onLike, onDislike, disabled = false }) => {
         <button
           className="cursed-button px-6 py-3.5 text-xs font-black uppercase tracking-wider rounded-full bg-white/5 text-slate-300 border border-white/10 hover:bg-rose-500/10 hover:border-rose-500/30 hover:text-rose-400 active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:pointer-events-none"
           onClick={() => {
+            fireRage();
             playSound("sad", 0.4);
             onDislike(user._id || user.id);
           }}
@@ -84,6 +89,7 @@ const UserCard = ({ user, onLike, onDislike, disabled = false }) => {
         <button
           className="cursed-button px-6 py-3.5 text-xs font-black uppercase tracking-wider rounded-full bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-lg shadow-rose-500/20 hover:from-rose-600 hover:to-pink-700 active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:pointer-events-none"
           onClick={() => {
+            fireRage();
             playSound("vine", 0.5);
             onLike(user._id || user.id);
           }}

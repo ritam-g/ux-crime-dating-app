@@ -4,7 +4,7 @@ import { getIO } from "../socket/socketServer.js";
 
 /**
  * @file chatFallback.service.js
- * @description Orchestrates generating, saving, and emitting AI-powered fallback replies.
+ * @description Orchestrates generating, saving, and emitting AI-powered fallback replies with human-like delays and cancellation boundaries.
  */
 
 /**
@@ -14,21 +14,51 @@ import { getIO } from "../socket/socketServer.js";
  * @param {string} params.senderId
  * @param {string} params.receiverId
  * @param {string} params.latestContent
+ * @param {Object} params.state - Active cancellation state object from scheduler
  */
-export const executeFallbackReply = async ({ conversationId, senderId, receiverId, latestContent }) => {
+export const executeFallbackReply = async ({ conversationId, senderId, receiverId, latestContent, state }) => {
   try {
     const io = getIO();
+
+    if (state && state.isCancelled) return;
+
+    // 1. Emit typing indicator start
     if (io) {
-      // 1. Emit typing indicator start
       io.to(conversationId).emit("typing", { userId: receiverId, isTyping: true });
     }
 
+    // 2. Wait realistic typing delay (2-3 seconds)
+    if (state && !state.isCancelled) {
+      await new Promise((resolve) => {
+        const typingDelay = 2000 + Math.floor(Math.random() * 1001); // 2000ms to 3000ms
+        state.typingTimeoutId = setTimeout(() => {
+          state.typingTimeoutId = null;
+          resolve();
+        }, typingDelay);
+      });
+    }
+
+    if (state && state.isCancelled) {
+      if (io) {
+        io.to(conversationId).emit("typing", { userId: receiverId, isTyping: false });
+      }
+      return;
+    }
+
+    // 3. Generate response using full chat history
     const aiResponseContent = await generateAIReply({
       conversationId,
       senderId,
       receiverId,
       latestContent,
     });
+
+    if (state && state.isCancelled) {
+      if (io) {
+        io.to(conversationId).emit("typing", { userId: receiverId, isTyping: false });
+      }
+      return;
+    }
 
     if (!aiResponseContent) {
       if (io) {
@@ -37,7 +67,7 @@ export const executeFallbackReply = async ({ conversationId, senderId, receiverI
       return;
     }
 
-    // Save the AI message inside MongoDB (marked as isAIMessage: true, sent by the receiver)
+    // 4. Save the AI message inside MongoDB
     const savedMessage = await createMessage({
       conversationId,
       sender: receiverId,
@@ -45,11 +75,16 @@ export const executeFallbackReply = async ({ conversationId, senderId, receiverI
       isAIMessage: true,
     });
 
-    // 2. Emit typing indicator end
+    if (state && state.isCancelled) {
+      if (io) {
+        io.to(conversationId).emit("typing", { userId: receiverId, isTyping: false });
+      }
+      return;
+    }
+
+    // 5. Emit typing indicator end and broadcast realtime message
     if (io) {
       io.to(conversationId).emit("typing", { userId: receiverId, isTyping: false });
-      
-      // Broadcast the new message via Socket.io
       io.to(conversationId).emit("receive_message", savedMessage);
     }
   } catch (error) {
@@ -61,3 +96,4 @@ export const executeFallbackReply = async ({ conversationId, senderId, receiverI
     }
   }
 };
+

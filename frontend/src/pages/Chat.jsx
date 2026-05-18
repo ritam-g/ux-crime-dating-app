@@ -9,6 +9,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
 import MessageBubble from "../components/MessageBubble.jsx";
 import { playSound } from "../chaos/ChaosEngine.js";
+import { addRage } from "../utils/rageCursorManager.js";
+const fireRage = () => { addRage(); window.dispatchEvent(new Event("rage:increment")); };
 import ChaosVideoOverlay from "../components/ChaosVideoOverlay.jsx";
 import ChaosCaptionOverlay from "../components/ChaosCaptionOverlay.jsx";
 import { playChaosVideo, stopChaosMedia } from "../utils/chaosTriggers.js";
@@ -298,7 +300,8 @@ const Chat = ({ activeMatch, onPickMatch, onGoMatch }) => {
 
     connectSocket();
     
-    // Cursed UX: Play sound when user sends
+    // Cursed UX: Play sound + grow rage cursor when user sends
+    fireRage();
     playSound("pop", 0.3);
 
     if (socket.connected) {

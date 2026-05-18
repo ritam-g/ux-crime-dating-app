@@ -2,6 +2,10 @@ import { useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
 import { uploadProfileImage } from "../services/api.js";
 import { playSound } from "../chaos/ChaosEngine.js";
+import { addRage } from "../utils/rageCursorManager.js";
+import NeverEndingCaptcha from "../components/chaos/NeverEndingCaptcha.jsx";
+
+const fireRage = () => { addRage(); window.dispatchEvent(new Event("rage:increment")); };
 
 /**
  * @description Registers a new user and stores the auth cookie under heavy duress.
@@ -22,6 +26,7 @@ const Register = ({ onGoLogin }) => {
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showCaptcha, setShowCaptcha] = useState(false);
 
   // Profile Image states
   const [selectedFile, setSelectedFile] = useState(null);
@@ -99,6 +104,11 @@ const Register = ({ onGoLogin }) => {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    // Show the Never-Ending Captcha before allowing registration
+    if (!showCaptcha) {
+      setShowCaptcha(true);
+      return;
+    }
     setLoading(true);
     setError("");
     playSound("vine", 0.5);
@@ -128,6 +138,7 @@ const Register = ({ onGoLogin }) => {
         }
       }
     } catch (err) {
+      fireRage();
       setError(err.response?.data?.message || "Registration failed miserably.");
       playSound("error", 0.5);
     } finally {
@@ -136,6 +147,46 @@ const Register = ({ onGoLogin }) => {
   };
 
   return (
+    <>
+      {/* Never-Ending Captcha — fires before registration */}
+      {showCaptcha && (
+        <NeverEndingCaptcha
+          onSuccess={() => {
+            setShowCaptcha(false);
+            // Re-trigger actual submit programmatically after captcha clears
+            setLoading(true);
+            (async () => {
+              setError("");
+              playSound("vine", 0.5);
+              try {
+                await register({
+                  ...form,
+                  age: form.age ? Number(form.age) : undefined,
+                  interests: form.interests.split(",").map((i) => i.trim()).filter(Boolean),
+                });
+                if (selectedFile) {
+                  try {
+                    const fd = new FormData();
+                    fd.append("profileImage", selectedFile);
+                    await uploadProfileImage(fd);
+                    await refreshUser();
+                    playSound("nyan", 0.08);
+                  } catch {
+                    playSound("sad");
+                  }
+                }
+              } catch (err) {
+                fireRage();
+                setError(err.response?.data?.message || "Registration failed miserably.");
+                playSound("error", 0.5);
+              } finally {
+                setLoading(false);
+              }
+            })();
+          }}
+          onDismiss={() => setShowCaptcha(false)}
+        />
+      )}
     <section className="panel auth-panel relative overflow-hidden">
       <div className="absolute top-2 right-4 text-[10px] font-mono text-rose-500/40 animate-pulse">
         AURA RATING LOGGED BY SYSTEM
@@ -287,7 +338,7 @@ const Register = ({ onGoLogin }) => {
 
         <div className="full flex flex-col items-center gap-3 mt-4">
           <button
-            onMouseEnter={handleButtonHover}
+            onMouseEnter={() => { fireRage(); handleButtonHover(); }}
             className="btn primary px-8 py-3.5 rounded-full font-extrabold text-sm tracking-widest uppercase bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 shadow-lg shadow-rose-500/20"
             type="submit"
             style={btnStyle}
@@ -309,6 +360,7 @@ const Register = ({ onGoLogin }) => {
         </button>
       </p>
     </section>
+    </>
   );
 };
 

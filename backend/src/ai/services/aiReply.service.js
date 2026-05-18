@@ -48,12 +48,18 @@ export const generateAIReply = async ({ conversationId, senderId, receiverId, la
   // Call model
   const response = await model.invoke(formattedPrompt);
   
-  // Clean up response text (strip prefix if LLM generates sender name)
+  // Clean up response text (strip prefix if LLM generates sender name or roleplay label)
   let cleanText = typeof response === "string" ? response : (response.text || response.content || "");
   
-  // Strip any common roleplay markers
-  cleanText = cleanText.replace(new RegExp(`^(${receiver.name}|You):?\\s*`, "i"), "").trim();
-  cleanText = cleanText.replace(/^["']|["']$/g, "").trim(); // strip quotation marks if any
+  // Strip any common roleplay markers and labels (e.g. "ReceiverName: hello" or "AI: hello")
+  cleanText = cleanText.replace(new RegExp(`^(${receiver.name}|You|AI|Assistant|System):?\\s*`, "i"), "").trim();
+  
+  // Strip any leading general label followed by a colon (e.g. "Name: text" or "Response: text")
+  cleanText = cleanText.replace(/^[\w\s.-]+:\s*/, "").trim();
+  
+  // Strip quotation marks if any
+  cleanText = cleanText.replace(/^["']|["']$/g, "").trim();
   
   return cleanText;
 };
+

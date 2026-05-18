@@ -1,5 +1,6 @@
 import aiConfig from "../config/ai.config.js";
 import { executeFallbackReply } from "../services/chatFallback.service.js";
+import { getIO } from "../socket/socketServer.js";
 
 /**
  * @file aiReplyScheduler.js
@@ -7,7 +8,8 @@ import { executeFallbackReply } from "../services/chatFallback.service.js";
  * Ensures strict single-timer guarantee per conversation room.
  */
 
-const pendingTimers = new Map(); // key = conversationId -> Timeout
+// Stores rich conversation state: key = conversationId -> { inactivityTimeoutId, typingTimeoutId, isCancelled, receiverId }
+const pendingTimers = new Map();
 
 /**
  * Schedules an AI response if the receiver remains inactive.
@@ -21,26 +23,62 @@ export const scheduleAIReply = ({ conversationId, senderId, receiverId, latestCo
   // Clear any existing active schedule for this conversation room to avoid duplicates/races
   cancelAIReply(conversationId);
 
+  const state = {
+    inactivityTimeoutId: null,
+    typingTimeoutId: null,
+    isCancelled: false,
+    receiverId,
+  };
+  pendingTimers.set(conversationId, state);
+
+  // Wait EXACTLY 10 seconds (10000ms) of full inactivity as required
   const timeoutId = setTimeout(async () => {
     try {
-      pendingTimers.delete(conversationId);
-      await executeFallbackReply({ conversationId, senderId, receiverId, latestContent });
+      if (state.isCancelled) return;
+      state.inactivityTimeoutId = null;
+      await executeFallbackReply({ conversationId, senderId, receiverId, latestContent, state });
     } catch (error) {
       console.error(`[AI Scheduler] Failed executing fallback reply: ${error.message}`);
+    } finally {
+      // Clean up from registry if it finished completely and wasn't cancelled or replaced
+      const current = pendingTimers.get(conversationId);
+      if (current === state && !state.typingTimeoutId) {
+        pendingTimers.delete(conversationId);
+      }
     }
-  }, aiConfig.aiReplyDelayMs);
+  }, 10000);
 
-  pendingTimers.set(conversationId, timeoutId);
+  state.inactivityTimeoutId = timeoutId;
 };
 
 /**
- * Cancels a pending AI timer for a given conversation.
+ * Cancels a pending AI timer for a given conversation, stopping typing delays and preventing any saved messages.
  * @param {string} conversationId
  * @param {string} [receiverId] - Optional receiverId to match legacy signature
  */
 export const cancelAIReply = (conversationId, receiverId) => {
-  if (pendingTimers.has(conversationId)) {
-    clearTimeout(pendingTimers.get(conversationId));
+  const state = pendingTimers.get(conversationId);
+  if (state) {
+    state.isCancelled = true;
+    if (state.inactivityTimeoutId) {
+      clearTimeout(state.inactivityTimeoutId);
+      state.inactivityTimeoutId = null;
+    }
+    if (state.typingTimeoutId) {
+      clearTimeout(state.typingTimeoutId);
+      state.typingTimeoutId = null;
+    }
+
+    // Immediately stop the typing indicator on the socket
+    try {
+      const io = getIO();
+      if (io && state.receiverId) {
+        io.to(conversationId).emit("typing", { userId: state.receiverId, isTyping: false });
+      }
+    } catch (err) {
+      console.error("[AI Scheduler] Failed to clear typing socket event:", err);
+    }
+
     pendingTimers.delete(conversationId);
   }
 };
@@ -49,3 +87,4 @@ export default {
   scheduleAIReply,
   cancelAIReply,
 };
+
