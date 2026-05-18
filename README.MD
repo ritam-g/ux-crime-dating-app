@@ -336,11 +336,4 @@ This app is:
 👉 plus AI emotional replacement
 👉 wrapped in chaotic UX design 😈
 
----
 
-If you want next step, I can help you:
-✔ design socket architecture (super important)
-✔ or build backend chat system step-by-step
-✔ or give AI fallback prompt for perfect responses
-
-Just tell me 👍
