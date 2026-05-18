@@ -100,9 +100,28 @@ const AuthGate = () => {
   );
 };
 
+const DynamicTitle = () => {
+  useEffect(() => {
+    const titles = [
+      "LOVE.EXE — Not Responding",
+      "Someone ignored you 💀",
+      "Emotionally buffering…",
+      "Rizz server unstable",
+    ];
+    let index = 0;
+    const interval = setInterval(() => {
+      index = (index + 1) % titles.length;
+      document.title = titles[index];
+    }, 4500);
+    return () => clearInterval(interval);
+  }, []);
+  return null;
+};
+
 function App() {
   return (
     <AuthProvider>
+      <DynamicTitle />
       <CursorTrail />
       <ChaosOverlay />
       <AuthGate />

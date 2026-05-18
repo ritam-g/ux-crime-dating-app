@@ -5,6 +5,7 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
 import ChatEntryVideoOverlay from "./chaos/ChatEntryVideoOverlay.jsx";
+import BrandHeader from "./branding/BrandHeader.jsx";
 
 /**
  * @description Renders primary navigation and logout controls.
@@ -30,10 +31,7 @@ const Navbar = ({ currentScreen, onNavigate }) => {
     <>
       {showChatVideo && <ChatEntryVideoOverlay onClose={() => setShowChatVideo(false)} />}
       <header className="navbar blinking-border">
-        <div>
-          <p className="brand">Love.exe</p>
-          <p className="brand-subtitle">Not Responding</p>
-        </div>
+        <BrandHeader compact={false} />
 
         <nav className="nav-actions">
           {user ? (
