@@ -19,7 +19,7 @@ const Navbar = ({ currentScreen, onNavigate }) => {
   };
 
   return (
-    <header className="navbar">
+    <header className="navbar blinking-border">
       <div>
         <p className="brand">Love.exe</p>
         <p className="brand-subtitle">Not Responding</p>
@@ -28,28 +28,28 @@ const Navbar = ({ currentScreen, onNavigate }) => {
       <nav className="nav-actions">
         {user ? (
           <>
-            <button className={currentScreen === "match" ? "nav-btn active" : "nav-btn"} onClick={() => onNavigate("match")}>
+            <button className={currentScreen === "match" ? "nav-btn active" : "nav-btn"} onClick={() => onNavigate("match")} data-chaos-tip="return to judgment">
               Match
             </button>
-            <button className={currentScreen === "matches" ? "nav-btn active" : "nav-btn"} onClick={() => onNavigate("matches")}>
+            <button className={currentScreen === "matches" ? "nav-btn active" : "nav-btn"} onClick={() => onNavigate("matches")} data-chaos-tip="view mutual mistakes">
               Matches
             </button>
-            <button className={currentScreen === "chat" ? "nav-btn active" : "nav-btn"} onClick={() => onNavigate("chat")}>
+            <button className={currentScreen === "chat" ? "nav-btn active" : "nav-btn"} onClick={() => onNavigate("chat")} data-chaos-tip="open emotional terminal">
               Chat
             </button>
-            <button className={currentScreen === "profile" ? "nav-btn active" : "nav-btn"} onClick={() => onNavigate("profile")}>
+            <button className={currentScreen === "profile" ? "nav-btn active" : "nav-btn"} onClick={() => onNavigate("profile")} data-chaos-tip="edit the lure">
               Profile
             </button>
-            <button className="nav-btn ghost" onClick={handleLogout}>
+            <button className="nav-btn ghost" onClick={handleLogout} data-chaos-tip="rage quit">
               Logout
             </button>
           </>
         ) : (
           <>
-            <button className={currentScreen === "login" ? "nav-btn active" : "nav-btn"} onClick={() => onNavigate("login")}>
+            <button className={currentScreen === "login" ? "nav-btn active" : "nav-btn"} onClick={() => onNavigate("login")} data-chaos-tip="re-enter the system">
               Login
             </button>
-            <button className={currentScreen === "register" ? "nav-btn active" : "nav-btn"} onClick={() => onNavigate("register")}>
+            <button className={currentScreen === "register" ? "nav-btn active" : "nav-btn"} onClick={() => onNavigate("register")} data-chaos-tip="create liability">
               Register
             </button>
           </>

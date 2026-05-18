@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
 import { updateProfile, uploadProfileImage } from "../services/api.js";
-import { playSound, pick } from "../chaos/ChaosEngine.js";
+import { playSound } from "../chaos/ChaosEngine.js";
 
 /**
  * @description Loads and updates the current user's profile with unhinged metric telemetry.
@@ -31,6 +31,7 @@ const Profile = () => {
   const [previewUrl, setPreviewUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
+  const auraTimerRef = useRef(null);
 
   useEffect(() => {
     if (user) {
@@ -46,14 +47,29 @@ const Profile = () => {
     }
   }, [user]);
 
+  useEffect(() => {
+    return () => {
+      if (auraTimerRef.current) {
+        clearTimeout(auraTimerRef.current);
+      }
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
   const handleScanAura = () => {
     setScanningAura(true);
     playSound("error", 0.2);
-    setTimeout(() => {
+    if (auraTimerRef.current) {
+      clearTimeout(auraTimerRef.current);
+    }
+    auraTimerRef.current = setTimeout(() => {
       setScanningAura(false);
       const newScore = Math.floor(Math.random() * 1000 - 800);
       setAuraScore(newScore);
       playSound("vine", 0.5);
+      auraTimerRef.current = null;
     }, 1500);
   };
 
@@ -76,6 +92,9 @@ const Profile = () => {
 
     setUploadError("");
     setSelectedFile(file);
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
     setPreviewUrl(URL.createObjectURL(file));
     playSound("pop", 0.35);
   };
@@ -96,6 +115,9 @@ const Profile = () => {
       await refreshUser();
       
       setSelectedFile(null);
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
       setPreviewUrl("");
       setUploading(false);
       setMessage("⚠️ RETINAL PROFILE PICTURE RE-BIOMETRICIZED SUCCESSFULLY!");
@@ -136,26 +158,26 @@ const Profile = () => {
       await refreshUser();
       setMessage("⚠️ PROFILE RIZZ UPGRADED SUCCESSFULLY. YOUR DATA IS NOW PART OF COGNITIVE TRAINING SETS.");
       playSound("nyan", 0.05);
-    } catch (err) {
+    } catch {
       setMessage("Failed to save changes. Please try crying about it.");
       playSound("sad");
     }
   };
 
   return (
-    <section className="panel border-2 border-slate-800 bg-slate-950/80 shadow-2xl relative overflow-hidden">
+    <section className="panel border-2 border-slate-800 bg-slate-950/80 shadow-2xl relative overflow-hidden dramatic-shadow fake-loading-flash" data-chaos-label="identity unstable">
       <div className="absolute top-2 right-4 text-[9px] font-mono text-rose-500/20">
         SUBJECT TELEMETRY INTERFACE
       </div>
 
       <p className="eyebrow text-rose-450 tracking-widest uppercase">Self-Deception Center</p>
-      <h1 className="text-3xl font-black text-white italic tracking-wide">Optimize your digital lure.</h1>
+      <h1 className="text-3xl font-black text-white italic tracking-wide glitch-text">Optimize your digital lure.</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
         {/* Left Side: Cursed Interactive Stats Panels */}
         <div className="lg:col-span-1 flex flex-col gap-4">
           {/* Cursed Profile Mugshot Upload */}
-          <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex flex-col gap-3 relative overflow-hidden">
+          <div className="warning-card p-5 rounded-2xl flex flex-col gap-3 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-24 h-24 bg-rose-500/5 rounded-full blur-xl pointer-events-none" />
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
               <span>📸</span> MUGSHOT UPLOADER
@@ -236,7 +258,7 @@ const Profile = () => {
           </div>
 
           {/* Aura Scanner */}
-          <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex flex-col gap-3">
+          <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex flex-col gap-3 fake-loading-flash">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">🧠 AURA TRACKING</h3>
             <div className="text-center py-4">
               {scanningAura ? (
@@ -254,7 +276,8 @@ const Profile = () => {
             </div>
             <button
               onClick={handleScanAura}
-              className="w-full bg-rose-500/10 border border-rose-500/35 text-rose-300 font-bold py-2 rounded-xl text-xs hover:bg-rose-500/20 active:scale-95 transition-all"
+              className="cursed-button w-full bg-rose-500/10 border border-rose-500/35 text-rose-300 font-bold py-2 rounded-xl text-xs hover:bg-rose-500/20 active:scale-95 transition-all"
+              data-chaos-tip="results legally meaningless"
             >
               Scan Aura Score
             </button>
@@ -331,8 +354,9 @@ const Profile = () => {
             ) : null}
 
             <button
-              className="btn primary full mt-4 py-3.5 rounded-full font-black text-sm tracking-widest bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 active:scale-95 transition-all shadow-lg shadow-rose-500/10"
+              className="btn primary cursed-button full mt-4 py-3.5 rounded-full font-black text-sm tracking-widest bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 active:scale-95 transition-all shadow-lg shadow-rose-500/10"
               type="submit"
+              data-chaos-tip="commit personality changes"
             >
               SAVE CHANGES & CONSOLE FEELINGS
             </button>

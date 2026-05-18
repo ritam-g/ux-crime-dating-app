@@ -33,7 +33,6 @@ const Matches = ({ onOpenChat }) => {
 
   useEffect(() => {
     loadMatches();
-    playChaosAudio("open_chat");
   }, []);
 
   const getOtherUser = (match) => {

@@ -26,7 +26,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await getProfile();
       setUser(safeUser(response.user));
-    } catch (error) {
+    } catch {
       setUser(null);
     } finally {
       setLoading(false);

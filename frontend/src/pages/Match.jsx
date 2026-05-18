@@ -5,7 +5,7 @@
  * This view keeps the matching flow simple: load candidates, let the user
  * like or dislike one card, and open chat when the backend reports a match.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import UserCard from "../components/UserCard.jsx";
 import { getMatchUsers, dislikeUser, likeUser } from "../services/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -24,16 +24,13 @@ const Match = ({ onOpenChat }) => {
   const { user: authUser } = useAuth();
   const [users, setUsers] = useState([]);
   const [status, setStatus] = useState("Loading users...");
-  const [matchNotice, setMatchNotice] = useState("");
-  const [pendingMatch, setPendingMatch] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [matchPopup, setMatchPopup] = useState(null);
+  const shakeTimerRef = useRef(null);
 
   const loadUsers = async () => {
     try {
       setStatus("Loading users...");
-      setMatchNotice("");
-      setPendingMatch(null);
 
       const response = await getMatchUsers();
       const items = response.users || [];
@@ -51,6 +48,12 @@ const Match = ({ onOpenChat }) => {
 
   useEffect(() => {
     loadUsers();
+    return () => {
+      if (shakeTimerRef.current) {
+        clearTimeout(shakeTimerRef.current);
+      }
+      document.body.classList.remove("shake-chaos");
+    };
   }, [authUser]);
 
   const handleAction = async (targetUserId, action) => {
@@ -79,8 +82,12 @@ const Match = ({ onOpenChat }) => {
 
         // Inflict physical shake chaos upon the layout
         document.body.classList.add("shake-chaos");
-        setTimeout(() => {
+        if (shakeTimerRef.current) {
+          clearTimeout(shakeTimerRef.current);
+        }
+        shakeTimerRef.current = setTimeout(() => {
           document.body.classList.remove("shake-chaos");
+          shakeTimerRef.current = null;
         }, 600);
         
         // Pick custom unhinged success quotes
@@ -113,7 +120,7 @@ const Match = ({ onOpenChat }) => {
   };
 
   return (
-    <section className="panel border-2 border-slate-800 bg-slate-950/80 shadow-2xl relative overflow-hidden">
+    <section className="panel border-2 border-slate-800 bg-slate-950/80 shadow-2xl relative overflow-hidden dramatic-shadow fake-loading-flash" data-chaos-label="ethics unavailable">
       {/* Glitch Overlay */}
       <div className="absolute top-2 right-4 text-[9px] font-mono text-rose-500/20">
         PSYCHOLOGICAL EXPERIMENT #48A
@@ -122,14 +129,14 @@ const Match = ({ onOpenChat }) => {
       <div className="section-header border-b border-slate-800/60 pb-4">
         <div>
           <p className="eyebrow text-rose-450 tracking-widest uppercase">Love Queue Surveillance</p>
-          <h1 className="text-3xl font-black text-white italic tracking-wide">Pick your emotional hostage.</h1>
+          <h1 className="text-3xl font-black text-white italic tracking-wide glitch-text">Pick your emotional hostage.</h1>
         </div>
-        <button className="px-5 py-2.5 bg-rose-500/10 border border-rose-500/30 text-rose-300 font-bold rounded-full hover:bg-rose-500/20 active:scale-95 transition-all text-xs" onClick={loadUsers} disabled={actionLoading}>
+        <button className="cursed-button px-5 py-2.5 bg-rose-500/10 border border-rose-500/30 text-rose-300 font-bold rounded-full hover:bg-rose-500/20 active:scale-95 transition-all text-xs" onClick={loadUsers} disabled={actionLoading} data-chaos-tip="reroll the questionable pool">
           Reload Target Victims
         </button>
       </div>
 
-      <div className="match-summary bg-slate-900/60 border border-slate-800 p-5 rounded-2xl flex items-center justify-between mt-4">
+      <div className="match-summary warning-card p-5 rounded-2xl flex items-center justify-between mt-4">
         <div>
           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">AURA MONITOR & BILLING TERMS</p>
           <p className="text-xs text-slate-450 leading-relaxed mt-1 font-light max-w-2xl">
@@ -146,7 +153,7 @@ const Match = ({ onOpenChat }) => {
 
       {matchPopup && (
         <div className="fixed inset-0 bg-slate-950/90 z-[9999] flex items-center justify-center p-6 backdrop-blur-md">
-          <div className="bg-slate-900 border-2 border-rose-500/40 p-8 rounded-3xl max-w-md w-full text-center relative overflow-hidden shadow-2xl shadow-rose-500/10">
+          <div className="bg-slate-900 border-2 border-rose-500/40 p-8 rounded-3xl max-w-md w-full text-center relative overflow-hidden shadow-2xl shadow-rose-500/10 dramatic-shadow">
             <div className="absolute -top-12 -left-12 w-24 h-24 bg-rose-500/20 rounded-full blur-2xl" />
             <div className="absolute -bottom-12 -right-12 w-24 h-24 bg-pink-500/20 rounded-full blur-2xl" />
             
@@ -169,7 +176,8 @@ const Match = ({ onOpenChat }) => {
                   peerName: matchPopup.peerName
                 });
               }}
-              className="w-full mt-6 py-4 bg-gradient-to-r from-rose-500 to-pink-600 text-white font-black text-sm tracking-widest uppercase rounded-2xl shadow-lg hover:from-rose-600 hover:to-pink-700 active:scale-95 transition-all"
+              className="cursed-button w-full mt-6 py-4 bg-gradient-to-r from-rose-500 to-pink-600 text-white font-black text-sm tracking-widest uppercase rounded-2xl shadow-lg hover:from-rose-600 hover:to-pink-700 active:scale-95 transition-all"
+              data-chaos-tip="chat unlocked, dignity not included"
             >
               👉 Go to Matches
             </button>
@@ -199,7 +207,7 @@ const Match = ({ onOpenChat }) => {
             <p className="text-slate-450 text-xs font-light max-w-sm leading-relaxed">
               You have exhausted the patience of every single user in our database. Perhaps you should try buying some Rizz Credits to bypass their high standards?
             </p>
-            <button onClick={loadUsers} className="px-6 py-2.5 bg-gradient-to-r from-rose-500 to-pink-600 text-white font-extrabold rounded-full text-xs shadow-lg hover:scale-105 transition-all mt-2">
+            <button onClick={loadUsers} className="cursed-button px-6 py-2.5 bg-gradient-to-r from-rose-500 to-pink-600 text-white font-extrabold rounded-full text-xs shadow-lg hover:scale-105 transition-all mt-2" data-chaos-tip="hope respawn requested">
               RETRY DESPERATELY
             </button>
           </div>

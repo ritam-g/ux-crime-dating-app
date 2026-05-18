@@ -15,18 +15,52 @@ const SOUNDS = {
 };
 
 const audioCache = {};
+const playCooldowns = {};
+const activeSounds = new Set();
 
 export const playSound = (name, volumeOverride) => {
   try {
     const url = SOUNDS[name];
     if (!url) return;
+
+    // 1. Debounce / Cooldown prevention (e.g. 300ms)
+    const now = Date.now();
+    if (playCooldowns[name] && now - playCooldowns[name] < 300) {
+      return; // Ignore spam
+    }
+
     if (!audioCache[name]) {
       audioCache[name] = new Audio(url);
     }
     const audio = audioCache[name];
+
+    // 2. Prevent overlapping of the exact same sound instance
+    if (activeSounds.has(audio)) {
+      audio.pause();
+    }
+
     audio.volume = volumeOverride ?? (0.1 + Math.random() * 0.3);
     audio.currentTime = 0;
-    audio.play().catch(() => {}); // ignore autoplay restrictions
+
+    activeSounds.add(audio);
+    playCooldowns[name] = now;
+
+    // 3. Play and handle browser autoplay securely without endless retries
+    const promise = audio.play();
+    if (promise !== undefined) {
+      promise.catch(() => {
+        // Silently ignore autoplay prevention to avoid throwing errors in console repeatedly
+      }).finally(() => {
+        activeSounds.delete(audio);
+      });
+    } else {
+      activeSounds.delete(audio);
+    }
+    
+    // Cleanup if ends naturally
+    audio.onended = () => {
+      activeSounds.delete(audio);
+    };
   } catch (_) {}
 };
 

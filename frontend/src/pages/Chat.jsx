@@ -11,7 +11,7 @@ import MessageBubble from "../components/MessageBubble.jsx";
 import { playSound } from "../chaos/ChaosEngine.js";
 import ChaosVideoOverlay from "../components/ChaosVideoOverlay.jsx";
 import ChaosCaptionOverlay from "../components/ChaosCaptionOverlay.jsx";
-import { playChaosVideo, playChaosAudio, stopChaosMedia } from "../utils/chaosTriggers.js";
+import { playChaosVideo, stopChaosMedia } from "../utils/chaosTriggers.js";
 import {
   getChatHistory,
   getMyMatches,
@@ -20,9 +20,6 @@ import {
 } from "../services/api.js";
 import socket, {
   connectSocket,
-  joinRoom,
-  offReceiveMessage,
-  onReceiveMessage,
   sendMessage as emitMessage,
 } from "../services/socket.js";
 
@@ -41,6 +38,14 @@ const TOXIC_SUGGESTIONS = [
   "Please don't fall in love with me, my schedule is fully booked with tax evasion.",
   "You write exactly like someone who uses a spreadsheet to calculate tips.",
   "I see you're an empath. Does that mean you can feel how boring this conversation is?",
+];
+
+const CHAT_HELPER_TEXTS = [
+  "bro got ignored. system is pretending this is fine.",
+  "typing... unfortunately.",
+  "they saw your aura and disappeared.",
+  "response probability: 2%. confidence: misplaced.",
+  "emotional damage buffer is almost full.",
 ];
 
 const Chat = ({ activeMatch, onPickMatch, onGoMatch }) => {
@@ -65,6 +70,14 @@ const Chat = ({ activeMatch, onPickMatch, onGoMatch }) => {
   );
 
   const hasMatches = matches.length > 0;
+  const helperText = useMemo(() => {
+    const seed = `${selectedMatchId}-${messages.length}-${typingUser || "quiet"}`;
+    let score = 0;
+    for (let index = 0; index < seed.length; index += 1) {
+      score += seed.charCodeAt(index);
+    }
+    return CHAT_HELPER_TEXTS[score % CHAT_HELPER_TEXTS.length];
+  }, [messages.length, selectedMatchId, typingUser]);
 
   // Double text detection
   const isDoubleTexting = useMemo(() => {
@@ -137,7 +150,7 @@ const Chat = ({ activeMatch, onPickMatch, onGoMatch }) => {
     loadHistory(selectedMatchId);
 
     // Establish connection
-    const currentSocket = connectSocket();
+    connectSocket();
 
     // Emit leave_room for the previous room if changing rooms
     if (previousConversationId.current && previousConversationId.current !== selectedMatchId) {
@@ -197,11 +210,11 @@ const Chat = ({ activeMatch, onPickMatch, onGoMatch }) => {
         seenMessageIds.current.add(incomingId);
       }
 
-      // Cursed audio cue: Play a pop or funny sound when they text
+      // Cursed audio cue: (Removed) Audio spam on passive socket updates is disabled
       const isPeer = String(incomingMessage.sender?._id || incomingMessage.sender) !== String(user._id || user.id);
       if (isPeer) {
-        playSound("error", 0.4);
         
+
         // Peer responded: cancel waiting timer and close the active meme overlay immediately
         setActiveMemeVideo(null);
         if (memeTimerRef.current) {
@@ -317,7 +330,7 @@ const Chat = ({ activeMatch, onPickMatch, onGoMatch }) => {
 
   return (
     <section className="chat-layout flex flex-col md:flex-row gap-6 mt-4">
-      <aside className="panel chat-sidebar border-2 border-slate-800 bg-slate-950/80 shadow-2xl relative overflow-hidden md:w-80 shrink-0">
+      <aside className="panel chat-sidebar border-2 border-slate-800 bg-slate-950/80 shadow-2xl relative overflow-hidden md:w-80 shrink-0 dramatic-shadow fake-loading-flash" data-chaos-label="roster compromised">
         <div className="section-header border-b border-slate-800/60 pb-4">
           <div>
             <p className="eyebrow text-rose-450 tracking-widest uppercase">Target Roster</p>
@@ -336,6 +349,7 @@ const Chat = ({ activeMatch, onPickMatch, onGoMatch }) => {
                     ? "bg-rose-500/20 border border-rose-500/50 text-white font-bold" 
                     : "bg-white/5 border border-white/5 text-slate-400 hover:bg-white/10"
                 }`}
+                data-chaos-tip="opening this may count as hope"
                 onClick={() => {
                   setSelectedMatchId(match._id);
                   onPickMatch?.({ matchId: match._id, peerName: otherUserName(match) });
@@ -356,11 +370,12 @@ const Chat = ({ activeMatch, onPickMatch, onGoMatch }) => {
         )}
       </aside>
 
-      <section className="panel chat-panel flex-1 border-2 border-slate-800 bg-slate-950/80 shadow-2xl relative overflow-hidden flex flex-col min-h-[500px]">
+      <section className="panel chat-panel flex-1 border-2 border-slate-800 bg-slate-950/80 shadow-2xl relative overflow-hidden flex flex-col min-h-[500px] dramatic-shadow" data-chaos-label="feelings monitored">
         <div className="chat-header flex items-center justify-between border-b border-slate-800/60 pb-4 mb-4">
           <div>
             <p className="eyebrow text-rose-450 tracking-widest uppercase">TELEPATHIC TERMINAL</p>
-            <h1 className="text-2xl font-black text-white italic">{selectedMatch ? otherUserName(selectedMatch) : "Pick a Hostage"}</h1>
+            <h1 className="text-2xl font-black text-white italic glitch-text">{selectedMatch ? otherUserName(selectedMatch) : "Pick a Hostage"}</h1>
+            <p className="sarcastic-helper mt-1">{helperText}</p>
           </div>
           <span className={`px-3 py-1 rounded-full text-[10px] uppercase font-black tracking-widest ${socket.connected ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40" : "bg-rose-500/20 text-rose-455 border border-rose-500/40 animate-pulse"}`}>
             {socket.connected ? "LIVE WIRE" : "DELAYED RELAY"}
@@ -369,7 +384,7 @@ const Chat = ({ activeMatch, onPickMatch, onGoMatch }) => {
 
         {selectedMatchId ? (
           <>
-            <div className="chat-history flex-1 overflow-y-auto pr-2 max-h-[360px] min-h-[280px]">
+            <div className="chat-history cursed-scroll flex-1 overflow-y-auto pr-2 max-h-[360px] min-h-[280px]">
               {status || roomError ? <p className="text-xs font-mono text-rose-400/60 text-center my-4 animate-pulse">{status || roomError}</p> : null}
               {messages.length ? (
                 messages.map((message) => (
@@ -390,8 +405,10 @@ const Chat = ({ activeMatch, onPickMatch, onGoMatch }) => {
               )}
               {typingUser && (
                 <div className="typing-indicator flex items-center gap-2 py-2 text-[10px] text-rose-450 font-mono italic">
-                  <span className="animate-pulse">● ● ●</span>
-                  <span>{typingUser} is typing something full of regret...</span>
+                  <span className="dot" />
+                  <span className="dot" />
+                  <span className="dot" />
+                  <span className="typing-text">{typingUser} is typing... unfortunately.</span>
                 </div>
               )}
               <div ref={bottomRef} />
@@ -400,7 +417,7 @@ const Chat = ({ activeMatch, onPickMatch, onGoMatch }) => {
             {/* Toxic Suggestions & Double text warnings wrapper */}
             <div className="mt-4 flex flex-col gap-2">
               {isDoubleTexting && (
-                <div className="bg-rose-500/10 border border-rose-500/25 text-rose-400 text-[10px] font-bold tracking-wider px-3.5 py-2.5 rounded-xl uppercase animate-pulse flex items-center justify-between">
+                <div className="warning-card blinking-border text-rose-400 text-[10px] font-bold tracking-wider px-3.5 py-2.5 rounded-xl uppercase animate-pulse flex items-center justify-between">
                   <span>⚠️ DOUBLE TEXT WARNING: DESPERATION LEVEL DETECTED &gt; 9000</span>
                   <span className="font-mono">CHANCE OF ANSWER: 0.12%</span>
                 </div>
@@ -410,7 +427,8 @@ const Chat = ({ activeMatch, onPickMatch, onGoMatch }) => {
                 <button
                   type="button"
                   onClick={handleSuggestToxic}
-                  className="px-4 py-2 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 text-amber-300 font-extrabold text-[10px] uppercase tracking-widest rounded-xl hover:from-amber-500/20 hover:to-orange-500/20 active:scale-95 transition-all flex items-center gap-1.5"
+                  className="cursed-button evil-hover px-4 py-2 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 text-amber-300 font-extrabold text-[10px] uppercase tracking-widest rounded-xl hover:from-amber-500/20 hover:to-orange-500/20 active:scale-95 transition-all flex items-center gap-1.5"
+                  data-chaos-tip="outsourcing personality"
                 >
                   <span>💡 SUGGEST TOXIC REPLY</span>
                 </button>
@@ -427,9 +445,10 @@ const Chat = ({ activeMatch, onPickMatch, onGoMatch }) => {
                 className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5 text-white focus:border-rose-500 transition-all outline-none text-sm placeholder-slate-500"
               />
               <button 
-                className="px-6 py-3.5 bg-gradient-to-r from-rose-500 to-pink-600 text-white font-black text-xs tracking-widest uppercase rounded-2xl shadow-lg hover:from-rose-600 hover:to-pink-700 active:scale-95 transition-all disabled:opacity-50" 
+                className="cursed-button evil-hover px-6 py-3.5 bg-gradient-to-r from-rose-500 to-pink-600 text-white font-black text-xs tracking-widest uppercase rounded-2xl shadow-lg hover:from-rose-600 hover:to-pink-700 active:scale-95 transition-all disabled:opacity-50" 
                 type="submit" 
                 disabled={!isRoomReady}
+                data-chaos-tip="send and immediately regret"
               >
                 TRANSMIT
               </button>

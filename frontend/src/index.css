@@ -21,6 +21,10 @@
   --accent-strong: #ff4d74;
   --accent-alt: #7dd3fc;
   --success: #4ade80;
+  --evil-red: #ff1744;
+  --evil-green: #39ff14;
+  --evil-purple: #b026ff;
+  --evil-yellow: #ffe600;
 }
 
 * {
@@ -35,6 +39,8 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  scrollbar-color: var(--evil-red) #07050a;
+  scrollbar-width: auto;
 }
 
 button,
@@ -49,4 +55,65 @@ button {
 
 a {
   color: inherit;
+}
+
+* {
+  scrollbar-width: auto;
+  scrollbar-color: var(--evil-green) #08050d;
+}
+
+::-webkit-scrollbar {
+  width: 18px;
+  height: 18px;
+  background: #07050a;
+}
+
+::-webkit-scrollbar-track {
+  background:
+    repeating-linear-gradient(
+      45deg,
+      #08050d 0 8px,
+      rgba(255, 230, 0, 0.18) 8px 12px
+    );
+  border: 2px solid rgba(255, 23, 68, 0.45);
+  box-shadow: inset 0 0 14px rgba(176, 38, 255, 0.45);
+}
+
+::-webkit-scrollbar-thumb {
+  min-height: 58px;
+  border: 3px solid #07050a;
+  border-radius: 3px;
+  background:
+    linear-gradient(180deg, var(--evil-green), var(--evil-yellow) 35%, var(--evil-red) 70%, var(--evil-purple));
+  box-shadow:
+    0 0 10px rgba(57, 255, 20, 0.9),
+    inset 0 0 10px rgba(0, 0, 0, 0.72);
+  animation: cursed-scrollbar-wiggle 1.25s steps(2, end) infinite, cursed-scrollbar-flash 2.4s linear infinite;
+  transition: border-color 0.18s ease, filter 0.18s ease, box-shadow 0.18s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  border-color: var(--evil-yellow);
+  filter: saturate(1.8) contrast(1.25);
+  box-shadow:
+    0 0 18px rgba(255, 230, 0, 0.95),
+    0 0 30px rgba(255, 23, 68, 0.75),
+    inset 0 0 12px rgba(0, 0, 0, 0.85);
+}
+
+::-webkit-scrollbar-corner {
+  background: var(--evil-purple);
+}
+
+.cursed-scroll {
+  scroll-behavior: smooth;
+  overscroll-behavior: contain;
+}
+
+.cursed-scroll::-webkit-scrollbar {
+  width: 20px;
+}
+
+.cursed-scroll::-webkit-scrollbar-thumb {
+  animation-duration: 0.85s, 1.7s;
 }

@@ -95,7 +95,9 @@ export const stopAllChaosAudio = () => {
     try {
       audio.pause();
       audio.currentTime = 0;
-    } catch (_) {}
+    } catch {
+      // Stopping audio is best-effort only.
+    }
   });
   activeAudios.clear();
 };
